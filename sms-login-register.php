@@ -3,7 +3,7 @@
  * Plugin Name:       YakutLogin
  * Plugin URI:        https://yakut.ir/plugins/yakutlogin/
  * Description:       Enables SMS-based login and registration with OTP, email OTP, Google Login, and CAPTCHA support.
- * Version:           1.0.0
+ * Version:           1.5.0
  * Author:            Yakut
  * Author URI:        https://yakut.ir/
  * License:           GPL v2 or later
@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define constants
  */
-define( 'SLR_PLUGIN_VERSION', '1.0.4' ); // SLR for SMS Login Register
+define( 'SLR_PLUGIN_VERSION', '1.5.0' ); // SLR for SMS Login Register
 define( 'SLR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SLR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -61,22 +61,21 @@ function run_sms_login_register() {
  */
 function slr_activate_plugin() {
     // Actions to perform on plugin activation, like setting default options.
-    // We'll add more here later.
     if ( ! get_option( 'slr_plugin_options' ) ) {
         $default_options = array(
             'sms_provider' => '',
             'email_otp_enabled' => true,
-            'otp_email_subject' => __( 'Your One-Time Password', 'sms-login-register' ),
-            'otp_email_body' => __( "Your OTP code is: {otp_code}\nThis code is valid for 5 minutes. \nSite: {site_title} ({site_url})", 'sms-login-register' ),
+            'otp_email_subject' => __( 'کد یکبارمصرف شما', 'yakutlogin' ),
+            'otp_email_body' => __( "کد تایید شما: {otp_code}\nاین کد تا ۵ دقیقه دیگر معتبر است. \nسایت: {site_title} ({site_url})", 'yakutlogin' ),
             'google_login_enabled' => false,
             'google_client_id' => '',
             'google_client_secret' => '',
             'captcha_type' => 'none',
-        'recaptcha_v2_site_key' => '',
-        'recaptcha_v2_secret_key' => '',
-        'turnstile_site_key' => '',
-        'turnstile_secret_key' => '',
-        'wc_checkout_otp_integration' => false,
+            'recaptcha_v2_site_key' => '',
+            'recaptcha_v2_secret_key' => '',
+            'turnstile_site_key' => '',
+            'turnstile_secret_key' => '',
+            'wc_checkout_otp_integration' => false,
         );
         update_option( 'slr_plugin_options', $default_options );
     }

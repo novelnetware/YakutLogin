@@ -105,16 +105,16 @@ class Sms_Login_Register_Admin {
      * For now, a sub-menu under Settings is standard for many plugins.
      */
     public function add_plugin_admin_menu() {
-        // Add a new top-level menu (this is what we'll use)
-        add_menu_page(
-            __( 'SMS Login Settings', 'sms-login-register' ), // Page title
-            __( 'SMS Login', 'sms-login-register' ),          // Menu title
-            'manage_options',                                 // Capability
-            $this->plugin_name . '-settings',                 // Menu slug
-            array( $this, 'display_plugin_setup_page' ),      // Function to display the page
-            'dashicons-smartphone',                           // Icon URL
-            75                                                // Position
-        );
+    add_menu_page(
+        __( 'تنظیمات ورود پیامکی', 'yakutlogin' ),      // Page title
+        __( 'ورود پیامکی', 'yakutlogin' ),             // Menu title
+        'manage_options',                                 // Capability
+        $this->plugin_name . '-settings',                 // Menu slug
+        array( $this, 'display_plugin_setup_page' ),      // Function to display the page
+        'dashicons-smartphone',                           // Icon URL
+        75                                                // Position
+    );
+}
 
         // Example: Add a sub-menu page
         /*
@@ -155,129 +155,184 @@ class Sms_Login_Register_Admin {
      * @since    1.0.0
      */
     public function register_settings() {
-        // Register our settings group
-        // 'slr_option_group' is the name of the group.
-        // 'slr_plugin_options' is the name of the option in the wp_options table.
-        register_setting(
-            'slr_option_group', // Option group
-            'slr_plugin_options', // Option name
-            array( $this, 'sanitize_settings' ) // Sanitize callback
-        );
+    // Register our settings group
+    register_setting(
+        'slr_option_group',
+        'slr_plugin_options',
+        array( $this, 'sanitize_settings' )
+    );
 
-        // Add settings sections
-        // add_settings_section( $id, $title, $callback, $page );
-        add_settings_section(
-            'slr_general_section', // ID
-            __( 'General Settings', 'sms-login-register' ), // Title
-            array( $this, 'print_general_section_info' ), // Callback
-            $this->plugin_name . '-settings' // Page slug (same as add_menu_page slug)
-        );
+    // Add settings sections
+    add_settings_section(
+        'slr_general_section',
+        __( 'تنظیمات عمومی', 'yakutlogin' ),
+        array( $this, 'print_general_section_info' ),
+        $this->plugin_name . '-settings'
+    );
 
-        // Add settings fields
-        // add_settings_field( $id, $title, $callback, $page, $section, $args );
-        add_settings_field(
-            'sms_provider', // ID
-            __( 'SMS Provider', 'sms-login-register' ), // Title
-            array( $this, 'sms_provider_callback' ), // Callback
-            $this->plugin_name . '-settings', // Page
-            'slr_general_section' // Section
-        );
+    // Add General Settings Fields
+    add_settings_field(
+        'email_otp_enabled',
+        __( 'فعال‌سازی کد با ایمیل', 'yakutlogin' ),
+        array( $this, 'email_otp_enabled_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
 
-        register_setting(
-            'slr_option_group', // Option group
-            'slr_plugin_options', // Option name
-            array( $this, 'sanitize_settings' ) // Sanitize callback
-        );
+    add_settings_field(
+        'otp_email_subject',
+        __( 'موضوع ایمیل کد یکبارمصرف', 'yakutlogin' ),
+        array( $this, 'otp_email_subject_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
 
-        // General Settings Section (already exists)
-        add_settings_section(
-            'slr_general_section',
-            __( 'General Settings', 'sms-login-register' ),
-            array( $this, 'print_general_section_info' ),
-            $this->plugin_name . '-settings'
-        );
-        // General fields (sms_provider, email_otp_enabled, etc. - already added)
-         add_settings_field( // Make sure sms_provider is still here or moved appropriately
-            'sms_provider',
-            __( 'SMS Provider', 'sms-login-register' ),
-            array( $this, 'sms_provider_callback' ),
-            $this->plugin_name . '-settings',
-            'slr_general_section'
-        );
-         add_settings_field(
-            'sms_otp_template',
-            __( 'SMS OTP Message Template', 'sms-login-register' ),
-            array( $this, 'sms_otp_template_callback' ),
-            $this->plugin_name . '-settings',
-            'slr_general_section'
-        );
+    add_settings_field(
+        'otp_email_body',
+        __( 'متن ایمیل کد یکبارمصرف', 'yakutlogin' ),
+        array( $this, 'otp_email_body_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
 
-        add_settings_field(
-            'email_otp_enabled',
-            __( 'Enable Email OTP', 'sms-login-register' ),
-            array( $this, 'email_otp_enabled_callback' ),
-            $this->plugin_name . '-settings',
-            'slr_general_section'
-        );
+    add_settings_field(
+        'google_login_enabled',
+        __( 'فعال‌سازی ورود با گوگل', 'yakutlogin' ),
+        array( $this, 'google_login_enabled_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
 
-        add_settings_field(
-            'otp_email_subject',
-            __( 'OTP Email Subject', 'sms-login-register' ),
-            array( $this, 'otp_email_subject_callback' ),
-            $this->plugin_name . '-settings',
-            'slr_general_section'
-        );
+    add_settings_field(
+        'google_client_id',
+        __( 'Google Client ID', 'yakutlogin' ),
+        array( $this, 'google_client_id_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
 
-        add_settings_field(
-            'otp_email_body',
-            __( 'OTP Email Body', 'sms-login-register' ),
-            array( $this, 'otp_email_body_callback' ),
-            $this->plugin_name . '-settings',
-            'slr_general_section'
-        );
+    add_settings_field(
+        'google_client_secret',
+        __( 'Google Client Secret', 'yakutlogin' ),
+        array( $this, 'google_client_secret_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    add_settings_field(
+        'google_redirect_uri_display',
+        __( 'آدرس بازگشت (Redirect URI) گوگل', 'yakutlogin' ),
+        array( $this, 'google_redirect_uri_display_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    add_settings_field(
+        'captcha_type',
+        __( 'نوع کپچا', 'yakutlogin' ),
+        array( $this, 'captcha_type_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    add_settings_field(
+        'recaptcha_v2_site_key',
+        __( 'Site Key گوگل ریکپچا (v2)', 'yakutlogin' ),
+        array( $this, 'recaptcha_v2_site_key_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    add_settings_field(
+        'recaptcha_v2_secret_key',
+        __( 'Secret Key گوگل ریکپچا (v2)', 'yakutlogin' ),
+        array( $this, 'recaptcha_v2_secret_key_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    add_settings_field(
+        'turnstile_site_key',
+        __( 'Site Key کلادفلر (Turnstile)', 'yakutlogin' ),
+        array( $this, 'turnstile_site_key_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    add_settings_field(
+        'turnstile_secret_key',
+        __( 'Secret Key کلادفلر (Turnstile)', 'yakutlogin' ),
+        array( $this, 'turnstile_secret_key_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_general_section'
+    );
+
+    if ( class_exists( 'WooCommerce' ) ) {
         add_settings_field(
             'wc_checkout_otp_integration',
-            __( 'WooCommerce Checkout OTP', 'sms-login-register' ),
+            __( 'جایگزینی فرم تسویه حساب ووکامرس', 'yakutlogin' ),
             array( $this, 'wc_checkout_otp_integration_callback' ),
             $this->plugin_name . '-settings',
             'slr_general_section'
         );
+    }
+    
+    // SMS Gateway Section
+    add_settings_section(
+        'slr_sms_gateway_section',
+        __( 'تنظیمات درگاه پیامک', 'yakutlogin' ),
+        array( $this, 'print_sms_gateway_section_info' ),
+        $this->plugin_name . '-settings'
+    );
+    
+    add_settings_field(
+        'sms_provider',
+        __( 'سرویس‌دهنده پیامک', 'yakutlogin' ),
+        array( $this, 'sms_provider_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_sms_gateway_section'
+    );
+    
+    add_settings_field(
+        'sms_otp_template',
+        __( 'قالب پیامک کد یکبارمصرف', 'yakutlogin' ),
+        array( $this, 'sms_otp_template_callback' ),
+        $this->plugin_name . '-settings',
+        'slr_sms_gateway_section'
+    );
 
-        // Gateway Specific Settings Section
-        if ($this->gateway_manager) {
-            $active_gateway = $this->gateway_manager->get_active_gateway();
-            if ( $active_gateway ) {
-                $gateway_settings_fields = $active_gateway->get_settings_fields();
-                if ( ! empty( $gateway_settings_fields ) ) {
-                    add_settings_section(
+    // Gateway Specific Settings Section
+    if ($this->gateway_manager) {
+        $active_gateway = $this->gateway_manager->get_active_gateway();
+        if ( $active_gateway ) {
+            $gateway_settings_fields = $active_gateway->get_settings_fields();
+            if ( ! empty( $gateway_settings_fields ) ) {
+                add_settings_section(
+                    'slr_gateway_specific_section_' . $active_gateway->get_id(),
+                    sprintf( __( 'تنظیمات %s', 'yakutlogin' ), $active_gateway->get_name() ),
+                    null,
+                    $this->plugin_name . '-settings'
+                );
+
+                foreach ( $gateway_settings_fields as $field_id => $field_args ) {
+                    add_settings_field(
+                        $field_id,
+                        esc_html( $field_args['label'] ),
+                        array( $this, 'render_gateway_setting_field' ),
+                        $this->plugin_name . '-settings',
                         'slr_gateway_specific_section_' . $active_gateway->get_id(),
-                        sprintf( __( '%s Settings', 'sms-login-register' ), $active_gateway->get_name() ),
-                        null, // No description callback needed for this section for now
-                        $this->plugin_name . '-settings'
+                        array(
+                            'id' => $field_id,
+                            'type' => isset($field_args['type']) ? $field_args['type'] : 'text',
+                            'desc' => isset($field_args['desc']) ? $field_args['desc'] : '',
+                            'default' => isset($field_args['default']) ? $field_args['default'] : '',
+                        )
                     );
-
-                    foreach ( $gateway_settings_fields as $field_id => $field_args ) {
-                        add_settings_field(
-                            $field_id,
-                            esc_html( $field_args['label'] ),
-                            array( $this, 'render_gateway_setting_field' ),
-                            $this->plugin_name . '-settings',
-                            'slr_gateway_specific_section_' . $active_gateway->get_id(),
-                            array(
-                                'id' => $field_id,
-                                'type' => isset($field_args['type']) ? $field_args['type'] : 'text',
-                                'options' => isset($field_args['options']) ? $field_args['options'] : [], // For select/radio
-                                'desc' => isset($field_args['desc']) ? $field_args['desc'] : '',
-                                'default' => isset($field_args['default']) ? $field_args['default'] : '',
-                            )
-                        );
-                    }
                 }
             }
         }
-
-
     }
+}
 
     /**
      * Renders a generic gateway setting field.
@@ -490,8 +545,8 @@ class Sms_Login_Register_Admin {
      * @since    1.0.0
      */
     public function print_general_section_info() {
-        print __( 'Configure the general settings for the SMS Login & Register plugin:', 'sms-login-register' );
-    }
+    print __( 'تنظیمات عمومی افزونه ورود و عضویت پیامکی را از این بخش مدیریت کنید.', 'yakutlogin' );
+}
 
     /**
      * Get the settings option array and print one of its values
@@ -502,7 +557,7 @@ class Sms_Login_Register_Admin {
         $current_provider_id = isset( $options['sms_provider'] ) ? $options['sms_provider'] : '';
         
         echo '<select id="sms_provider" name="slr_plugin_options[sms_provider]">';
-        echo '<option value="">' . esc_html__( '-- Select a Provider --', 'sms-login-register' ) . '</option>';
+        echo '<option value="">' . esc_html__( '-- انتخاب سرویس پیامک --', 'yakutlogin' ) . '</option>';
 
         if ($this->gateway_manager) {
             $available_gateways = $this->gateway_manager->get_available_gateways();
@@ -511,7 +566,7 @@ class Sms_Login_Register_Admin {
             }
         }
         echo '</select>';
-        echo '<p class="description">' . __('Select your SMS provider. Specific settings will appear below once saved.', 'sms-login-register') . '</p>';
+        echo '<p class="description">' . __('سرویس پیامک مد نظر خود را انتخاب کنید', 'yakutlogin') . '</p>';
     }
 
     public function email_otp_enabled_callback() {
@@ -521,7 +576,7 @@ class Sms_Login_Register_Admin {
             '<input type="checkbox" id="email_otp_enabled" name="slr_plugin_options[email_otp_enabled]" value="1" %s />',
             $checked
         );
-        echo '<label for="email_otp_enabled"> ' . __('Enable sending OTP via Email as an alternative.', 'sms-login-register') . '</label>';
+        echo '<label for="email_otp_enabled"> ' . __('ارسال کد تایید توسط ایمیل', 'yakutlogin') . '</label>';
     }
     public function google_login_enabled_callback() {
         $options = get_option( 'slr_plugin_options' );
@@ -530,7 +585,7 @@ class Sms_Login_Register_Admin {
             '<input type="checkbox" id="google_login_enabled" name="slr_plugin_options[google_login_enabled]" value="1" %s />',
             $checked
         );
-        echo '<label for="google_login_enabled"> ' . __('Allow users to log in or register using their Google account.', 'sms-login-register') . '</label>';
+        echo '<label for="google_login_enabled"> ' . __('فعالسازی ورود عضویت توسط گوگل', 'yakutlogin') . '</label>';
     }
 
     public function google_client_id_callback() {
@@ -552,19 +607,17 @@ class Sms_Login_Register_Admin {
     }
 
     public function google_redirect_uri_display_callback() {
-        // Construct the redirect URI based on the site's home_url
-        // This must exactly match what's entered in Google Cloud Console
-        $redirect_uri = add_query_arg( 'slr_google_auth_callback', '1', home_url( '/' ) );
-        echo '<code>' . esc_url( $redirect_uri ) . '</code>';
-        echo '<p class="description">' . __( 'Copy this URI and paste it into your Google Cloud Console project under "Authorized redirect URIs".', 'sms-login-register') . '</p>';
-    }
+    $redirect_uri = add_query_arg( 'slr_google_auth_callback', '1', home_url( '/' ) );
+    echo '<code>' . esc_url( $redirect_uri ) . '</code>';
+    echo '<p class="description">' . __( 'این آدرس را کپی کرده و در کنسول گوگل در بخش "Authorized redirect URIs" پروژه خود وارد کنید.', 'yakutlogin') . '</p>';
+}
     public function captcha_type_callback() {
         $options = get_option( 'slr_plugin_options' );
         $current_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
         $captcha_types = array(
-            'none' => __( 'None', 'sms-login-register' ),
-            'recaptcha_v2' => __( 'Google reCAPTCHA v2 ("I\'m not a robot")', 'sms-login-register' ),
-            'turnstile' => __( 'Cloudflare Turnstile', 'sms-login-register' ),
+            'none' => __( 'هیچکدام', 'yakutlogin' ),
+            'recaptcha_v2' => __( 'گوگل ریکپچا ورژن 2 ("I\'m not a robot")', 'yakutlogin' ),
+            'turnstile' => __( 'کلودفلر Turnstile', 'yakutlogin' ),
         );
 
         echo '<select id="captcha_type" name="slr_plugin_options[captcha_type]">';
@@ -572,7 +625,7 @@ class Sms_Login_Register_Admin {
             echo '<option value="' . esc_attr($key) . '" ' . selected($current_type, $key, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select>';
-        echo '<p class="description">' . __('Select the CAPTCHA service to use on forms.', 'sms-login-register') . '</p>';
+        echo '<p class="description">' . __('انتخاب سرویس کپچا برای لاگین', 'yakutlogin') . '</p>';
         // You might add JavaScript here to show/hide relevant Site Key/Secret Key fields based on selection.
     }
 
@@ -580,40 +633,40 @@ class Sms_Login_Register_Admin {
         $options = get_option( 'slr_plugin_options' );
         $value = isset( $options['recaptcha_v2_site_key'] ) ? $options['recaptcha_v2_site_key'] : '';
         printf( '<input type="text" class="regular-text" id="recaptcha_v2_site_key" name="slr_plugin_options[recaptcha_v2_site_key]" value="%s" />', esc_attr( $value ) );
-        echo '<p class="description">' . __('Required if Google reCAPTCHA v2 is selected.', 'sms-login-register') . '</p>';
+        echo '<p class="description">' . __('اجباری اگر گوگل ریکپچا انتخاب شده است', 'yakutlogin') . '</p>';
     }
 
     public function recaptcha_v2_secret_key_callback() {
         $options = get_option( 'slr_plugin_options' );
         $value = isset( $options['recaptcha_v2_secret_key'] ) ? $options['recaptcha_v2_secret_key'] : '';
         printf( '<input type="password" class="regular-text" id="recaptcha_v2_secret_key" name="slr_plugin_options[recaptcha_v2_secret_key]" value="%s" />', esc_attr( $value ) );
-         echo '<p class="description">' . __('Required if Google reCAPTCHA v2 is selected.', 'sms-login-register') . '</p>';
+         echo '<p class="description">' . __('اجباری اگر گوگل ریکپچا انتخاب شده است', 'yakutlogin') . '</p>';
     }
 
     public function turnstile_site_key_callback() {
         $options = get_option( 'slr_plugin_options' );
         $value = isset( $options['turnstile_site_key'] ) ? $options['turnstile_site_key'] : '';
         printf( '<input type="text" class="regular-text" id="turnstile_site_key" name="slr_plugin_options[turnstile_site_key]" value="%s" />', esc_attr( $value ) );
-        echo '<p class="description">' . __('Required if Cloudflare Turnstile is selected.', 'sms-login-register') . '</p>';
+        echo '<p class="description">' . __('اجباری اگر کلودفلر انتخاب شده است', 'yakutlogin') . '</p>';
     }
 
     public function turnstile_secret_key_callback() {
         $options = get_option( 'slr_plugin_options' );
         $value = isset( $options['turnstile_secret_key'] ) ? $options['turnstile_secret_key'] : '';
         printf( '<input type="password" class="regular-text" id="turnstile_secret_key" name="slr_plugin_options[turnstile_secret_key]" value="%s" />', esc_attr( $value ) );
-        echo '<p class="description">' . __('Required if Cloudflare Turnstile is selected.', 'sms-login-register') . '</p>';
+        echo '<p class="description">' . __('اجباری اگر کلود فلر انتخاب شده است', 'yakutlogin') . '</p>';
     }
     public function wc_checkout_otp_integration_callback() {
         $options = get_option( 'slr_plugin_options' );
         $checked = isset( $options['wc_checkout_otp_integration'] ) && $options['wc_checkout_otp_integration'] ? 'checked' : '';
 
         if ( ! class_exists( 'WooCommerce' ) ) {
-            echo '<p class="description">' . __( 'WooCommerce plugin is not active. This feature requires WooCommerce.', 'sms-login-register' ) . '</p>';
+            echo '<p class="description">' . __( 'ووکامرس فعال نمیباشد . این بخش وابسته به ووکامرس میباشد', 'yakutlogin' ) . '</p>';
             printf( '<input type="checkbox" id="wc_checkout_otp_integration" name="slr_plugin_options[wc_checkout_otp_integration]" value="1" %s disabled />', $checked );
         } else {
             printf( '<input type="checkbox" id="wc_checkout_otp_integration" name="slr_plugin_options[wc_checkout_otp_integration]" value="1" %s />', $checked );
         }
-        echo '<label for="wc_checkout_otp_integration"> ' . __('Replace default WooCommerce login & registration forms on the checkout page with OTP form.', 'sms-login-register') . '</label>';
-        echo '<p class="description">' . __('This will prompt users to log in or register via OTP before proceeding with checkout details.', 'sms-login-register') . '</p>';
+        echo '<label for="wc_checkout_otp_integration"> ' . __('فعالسازی به عنوان ورود عضویت ووکامرس', 'yakutlogin') . '</label>';
+        echo '<p class="description">' . __('این قسمت مربوط به فعالسازی ورود یا عضویت قبل از پرداخت ووکامرس میباشد', 'yakutlogin') . '</p>';
     }
 }

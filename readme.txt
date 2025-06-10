@@ -5,7 +5,7 @@ Tags: sms login, otp login, sms registration, otp, mobile login, google login, r
 Requires at least: 5.5
 Tested up to: 6.5  // یا آخرین نسخه وردپرس در زمان انتشار
 Requires PHP: 7.4
-Stable tag: 1.0.4 // نسخه‌ای که پایدار می‌دانید و در حال انتشار آن هستید
+Stable tag: 1.5.0 //نسخه‌ای که پایدار می‌دانید و در حال انتشار آن هستید
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,7 +74,7 @@ You need to register an account with your chosen SMS provider (e.g., Kavenegar.c
 
 Yes!
 * **Elementor Widget:** The "SMS/OTP Login Form" widget provides extensive styling controls in the Elementor editor's "Style" tab, as well as layout and theme selectors in the "Content" tab.
-* **Shortcode:** The `[slr_otp_form]` shortcode accepts attributes like `theme="minimal"`, `layout="compact"`, and `text_send_otp="ارسال کد"` to customize the look and button texts.
+* **Shortcode:** The `[slr_otp_form]` shortcode accepts attributes like `theme="minimal"`, `theme="dark"`, `theme="glass"`, `theme="gradient"`, `layout="compact"`, and `text_send_otp="ارسال کد"` to customize the look and button texts.
 * **Custom CSS:** You can always add your own custom CSS to further style the form elements. The main container has the class `slr-otp-form-container`.
 
 == Screenshots ==
@@ -136,4 +136,12 @@ Yes!
 = 1.0.4 =
 This version includes significant enhancements to form customization via shortcode and Elementor, and fixes phone number saving for wp-login.php registrations. Please review your Elementor widget settings and shortcode attributes if you were using custom layouts previously, as the implementation has been formalized.
 
-(Add other upgrade notices as needed for future versions)
+= 1.5.0 =
+* Enhancement: Added 4 new SMS gateways: MeliPayamak, Kavan SMS, Faraz SMS, and SMS.ir.
+* Enhancement: Added 2 new form themes: "Glass" and "Gradient".
+* Enhancement: Full Persian translation for all plugin sections.
+* Fix: Major structural errors in the admin settings panel that caused fatal errors.
+* Fix: JavaScript bug where variables were used before definition in the OTP sending logic.
+* Fix: Removed an invalid hook in the WooCommerce integration class.
+* Fix: Unified the text domain to 'yakutlogin' across all files for proper translation loading.
+* Security: General code hardening and review.

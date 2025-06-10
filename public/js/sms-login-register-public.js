@@ -13,9 +13,9 @@ jQuery(document).ready(function($) {
     $('body').on('click', '.slr-send-otp-button, .slr-send-otp-button-generic', function(e) {
         e.preventDefault();
         var $button = $(this);
+        var $formContainer = $button.closest('.slr-otp-form-container, .slr-otp-wp-login-section, .slr-otp-wp-register-section');
         var $phoneField = $formContainer.find('.slr-phone-input').first();
         var phone = $phoneField.length ? $phoneField.val() : '';
-        var $formContainer = $button.closest('.slr-otp-form-container, .slr-otp-wp-login-section, .slr-otp-wp-register-section');
         
         var emailFieldSelector = $button.data('email-field') || $formContainer.find('.slr-email-input').first();
         var $emailField = $(emailFieldSelector);

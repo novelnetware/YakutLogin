@@ -28,23 +28,60 @@ class SLR_Gateway_Manager {
      * A more advanced approach might scan a directory or use a filter.
      */
     private function load_gateways() {
-        // Manually include and register gateways
-        // Kavenegar Example
-        if ( file_exists( SLR_PLUGIN_DIR . 'includes/gateways/class-slr-kavenegar-gateway.php' ) ) {
-            require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-kavenegar-gateway.php';
-            if ( class_exists( 'SLR_Kavenegar_Gateway' ) ) {
-                $kavenegar = new SLR_Kavenegar_Gateway();
-                $this->gateways[$kavenegar->get_id()] = $kavenegar;
-            }
+    // Manually include and register gateways
+    // Kavenegar Example
+    if ( file_exists( SLR_PLUGIN_DIR . 'includes/gateways/class-slr-kavenegar-gateway.php' ) ) {
+        require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-kavenegar-gateway.php';
+        if ( class_exists( 'SLR_Kavenegar_Gateway' ) ) {
+            $kavenegar = new SLR_Kavenegar_Gateway();
+            $this->gateways[$kavenegar->get_id()] = $kavenegar;
         }
-        
-        // Add other gateways here in the same way
-        // e.g., require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-melipayamak-gateway.php';
-        // $melipayamak = new SLR_Melipayamak_Gateway();
-        // $this->gateways[$melipayamak->get_id()] = $melipayamak;
-
-        $this->gateways = apply_filters( 'slr_register_sms_gateways', $this->gateways );
     }
+
+    // MeliPayamak Gateway - START
+    if ( file_exists( SLR_PLUGIN_DIR . 'includes/gateways/class-slr-melipayamak-gateway.php' ) ) {
+        require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-melipayamak-gateway.php';
+        if ( class_exists( 'SLR_MeliPayamak_Gateway' ) ) {
+            $melipayamak = new SLR_MeliPayamak_Gateway();
+            $this->gateways[$melipayamak->get_id()] = $melipayamak;
+        }
+    }
+    // MeliPayamak Gateway - END
+
+    // Kavan SMS Gateway - START
+    if ( file_exists( SLR_PLUGIN_DIR . 'includes/gateways/class-slr-kavansms-gateway.php' ) ) {
+        require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-kavansms-gateway.php';
+        if ( class_exists( 'SLR_KavanSms_Gateway' ) ) {
+            $kavansms = new SLR_KavanSms_Gateway();
+            $this->gateways[$kavansms->get_id()] = $kavansms;
+        }
+    }
+    // Kavan SMS Gateway - END
+
+    // Faraz SMS Gateway - START
+    if ( file_exists( SLR_PLUGIN_DIR . 'includes/gateways/class-slr-farazsms-gateway.php' ) ) {
+        require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-farazsms-gateway.php';
+        if ( class_exists( 'SLR_FarazSms_Gateway' ) ) {
+            $farazsms = new SLR_FarazSms_Gateway();
+            $this->gateways[$farazsms->get_id()] = $farazsms;
+        }
+    }
+    // Faraz SMS Gateway - END
+
+    // SMS.ir Gateway - START
+    if ( file_exists( SLR_PLUGIN_DIR . 'includes/gateways/class-slr-smsir-gateway.php' ) ) {
+        require_once SLR_PLUGIN_DIR . 'includes/gateways/class-slr-smsir-gateway.php';
+        if ( class_exists( 'SLR_SmsIr_Gateway' ) ) {
+            $smsir = new SLR_SmsIr_Gateway();
+            $this->gateways[$smsir->get_id()] = $smsir;
+        }
+    }
+    // SMS.ir Gateway - END
+    
+    // Add other gateways here in the same way
+
+    $this->gateways = apply_filters( 'slr_register_sms_gateways', $this->gateways );
+}
 
     /**
      * Sets the active gateway based on plugin settings.

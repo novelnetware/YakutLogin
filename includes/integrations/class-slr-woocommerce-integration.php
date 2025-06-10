@@ -23,9 +23,8 @@ class SLR_WooCommerce_Integration {
 
         if ( isset( $options['wc_checkout_otp_integration'] ) && $options['wc_checkout_otp_integration'] ) {
             // Remove default WooCommerce login form and registration prompts from checkout
-            add_action( 'woocommerce_before_checkout_form', array( $this, 'remove_checkout_login_form'), 9 ); // Before default 10
+            add_action( 'woocommerce_before_checkout_form', array( $this, 'remove_checkout_login_form'), 9 );
             add_filter( 'woocommerce_checkout_registration_enabled', array( $this, 'disable_checkout_registration_form' ) );
-            add_filter( 'woocommerce_checkout_ πρέπει_create_account', array( $this, 'disable_checkout_registration_form' ) ); // Greek typo from somewhere? Should be 'woocommerce_checkout_must_create_account' or 'woocommerce_checkout_show_create_account_notice'
 
             // Add our custom OTP form
             add_action( 'woocommerce_before_checkout_form', array( $this, 'display_otp_form_on_checkout' ), 10 );
@@ -71,7 +70,7 @@ class SLR_WooCommerce_Integration {
 
         echo '<div class="slr-wc-checkout-otp-wrapper">';
         // You might want to add a specific message for checkout context
-        echo '<h3>' . esc_html__( 'Login or Register with OTP to continue', 'sms-login-register' ) . '</h3>';
+        echo '<h3>' . esc_html__( 'برای ادامه، با کد یکبارمصرف وارد شوید یا ثبت‌نام کنید', 'yakutlogin' ) . '</h3>';
         
         $form_args = array(
             'form_id'     => 'slr-otp-checkout-form',

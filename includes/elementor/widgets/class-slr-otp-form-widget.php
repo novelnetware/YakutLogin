@@ -129,16 +129,17 @@ class SLR_Otp_Form_Widget extends Widget_Base {
             ]
         );
          $this->add_control(
-            'form_theme', // New control for theme selection
+            'form_theme',
             [
-                'label' => __( 'Form Theme', 'sms-login-register' ),
+                'label' => __( 'پوسته فرم', 'yakutlogin' ),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'default',
                 'options' => [
-                    'default'  => __( 'Default', 'sms-login-register' ),
-                    'minimal' => __( 'Minimal', 'sms-login-register' ),
-                    'dark'    => __( 'Dark (Example)', 'sms-login-register' ),
-                    // Add more themes as you create them
+                    'default'  => __( 'پیش‌فرض', 'yakutlogin' ),
+                    'minimal' => __( 'ساده', 'yakutlogin' ),
+                    'dark'    => __( 'تیره', 'yakutlogin' ),
+                    'glass'   => __( 'شیشه‌ای', 'yakutlogin' ), // پوسته جدید
+                    'gradient'=> __( 'گرادینت', 'yakutlogin' ), // پوسته جدید
                 ],
             ]
         );

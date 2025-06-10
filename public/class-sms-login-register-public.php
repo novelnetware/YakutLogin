@@ -75,9 +75,9 @@ class Sms_Login_Register_Public {
             'theme'       => 'default',
             'layout'      => 'default', // New: 'default', 'compact', 'inline_labels'
             'button_texts' => array(     // New: For button texts
-                'send_otp' => __( 'Send OTP', 'sms-login-register' ),
-                'submit'   => __( 'Login / Register with OTP', 'sms-login-register' ),
-                'google'   => __( 'Login with Google', 'sms-login-register' ),
+                'send_otp' => __( 'ارسال کد تایید', 'yakutlogin' ),
+                'submit'   => __( 'ورود / عضویت با پیامک', 'yakutlogin' ),
+                'google'   => __( 'ورود توسط گوگل', 'yakutlogin' ),
             ),
         );
         $args = wp_parse_args( $args, $default_args );
@@ -125,7 +125,7 @@ class Sms_Login_Register_Public {
                         </a>
                     </div>
                     <div class="slr-form-row slr-divider-row">
-                        <span class="slr-divider-text"><?php _e('OR', 'sms-login-register'); ?></span>
+                        <span class="slr-divider-text"><?php _e('یا', 'yakutlogin'); ?></span>
                     </div>
                 <?php endif; ?>
                 
@@ -147,8 +147,8 @@ class Sms_Login_Register_Public {
                 };
 
                 // Render fields - order can be customized by Elementor controls later if needed
-                $render_field_logic('phone', 'phone', __('Mobile Number (Optional)', 'sms-login-register'), __('e.g., 09123456789', 'sms-login-register'));
-                $render_field_logic('email', 'email', __('Email Address (Optional if phone is used)', 'sms-login-register'), __('Enter your email', 'sms-login-register'));
+                $render_field_logic('phone', 'phone', __('تلفن همراه', 'yakutlogin'), __('مثال : 09123456789', 'yakutlogin'));
+                $render_field_logic('email', 'email', __('ایمیل', 'yakutlogin'), __('ایمیل خود را وارد کنید', 'yakutlogin'));
                 ?>
 
                 <div class="slr-form-row slr-send-otp-row">
@@ -159,9 +159,9 @@ class Sms_Login_Register_Public {
 
                 <div class="slr-form-row slr-otp-row" style="display: none;">
                      <?php if ($args['show_labels'] && $args['layout'] !== 'inline_labels'): ?>
-                        <label for="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>"><?php _e('One-Time Password', 'sms-login-register'); ?></label>
+                        <label for="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>"><?php _e('کد یکبار مصرف', 'yakutlogin'); ?></label>
                     <?php endif; ?>
-                    <input type="text" name="slr_otp_code" id="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>" class="slr-input slr-otp-input" placeholder="<?php echo esc_attr( ($args['show_labels'] && $args['layout'] === 'inline_labels') ? __('One-Time Password', 'sms-login-register') : __('Enter OTP', 'sms-login-register') ); ?>" autocomplete="off" />
+                    <input type="text" name="slr_otp_code" id="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>" class="slr-input slr-otp-input" placeholder="<?php echo esc_attr( ($args['show_labels'] && $args['layout'] === 'inline_labels') ? __('کد یکبار مصرف', 'yakutlogin') : __('کد تایید', 'yakutlogin') ); ?>" autocomplete="off" />
                 </div>
                 
                 <?php echo $captcha_html; // Output CAPTCHA HTML ?>
@@ -221,15 +221,15 @@ class Sms_Login_Register_Public {
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
                 'send_otp_nonce' => wp_create_nonce( 'slr_send_otp_nonce' ),
                 'process_form_nonce' => wp_create_nonce( 'slr_process_form_nonce' ),
-                'text_sending_otp' => __( 'Sending OTP...', 'sms-login-register' ),
-                'text_processing' => __( 'Processing...', 'sms-login-register' ),
-                'text_otp_sent' => __( 'OTP sent! Check your email or phone.', 'sms-login-register' ), // Updated text
-                'text_error_sending_otp' => __( 'Error sending OTP. Please try again.', 'sms-login-register' ),
-                'text_invalid_email' => __( 'Please enter a valid email address.', 'sms-login-register' ),
-                'text_invalid_phone' => __( 'Please enter a valid phone number.', 'sms-login-register' ), // Added
-                'text_fill_otp' => __( 'Please enter the OTP.', 'sms-login-register'),
-                'text_login_success' => __('Login successful. Redirecting...', 'sms-login-register'),
-                'text_registration_success' => __('Registration successful. Logging you in...', 'sms-login-register'),
+                'text_sending_otp' => __( 'ارسال کد تایید...', 'yakutlogin' ),
+                'text_processing' => __( 'درحال پردازش...', 'yakutlogin' ),
+                'text_otp_sent' => __( 'کد تایید ارسال شد', 'yakutlogin' ), // Updated text
+                'text_error_sending_otp' => __( 'خطا در ارسال کد تایید . لطفا بعدا مجدد امتحان کنید', 'yakutlogin' ),
+                'text_invalid_email' => __( 'لطفا یک ایمیل معتبر وارد کنید', 'yakutlogin' ),
+                'text_invalid_phone' => __( 'لطفا یک شماره تلفن معتبر وارد کنید', 'yakutlogin' ), // Added
+                'text_fill_otp' => __( 'لطفا کد تایید را وارد کنید', 'yakutlogin'),
+                'text_login_success' => __('با موفقیت وارد شدید', 'yakutlogin'),
+                'text_registration_success' => __('ثبت نام شما با موفقیت انجام شد', 'yakutlogin'),
             )
         );
         
@@ -276,15 +276,15 @@ class Sms_Login_Register_Public {
         }
         ?>
         <div class="slr-otp-wp-login-section">
-            <h4><?php _e('Or Login with OTP', 'sms-login-register'); ?></h4>
+            <h4><?php _e('ورود با رمز یکبار مصرف', 'yakutlogin'); ?></h4>
             <?php if ($sms_enabled): // Add phone field for wp-login.php if SMS is possible ?>
             <p>
-                <label for="slr_phone_login_wp"><?php _e('Mobile Number (for OTP)', 'sms-login-register'); ?></label>
+                <label for="slr_phone_login_wp"><?php _e('تلفن همراه', 'yakutlogin'); ?></label>
                 <input type="tel" name="slr_phone_wp_login" id="slr_phone_login_wp" class="input" value="" size="20" />
             </p>
             <?php endif; ?>
             <?php if ($email_otp_enabled): // Still show email field if email OTP is on ?>
-            <p class="description"><em><?php _e('Enter your username/email above to receive OTP via email, or use your mobile number for SMS OTP if available.', 'sms-login-register'); ?></em></p>
+            <p class="description"><em><?php _e('نام کاربری', 'yakutlogin'); ?></em></p>
             <?php endif; ?>
             <p>
                 <button type="button" id="slr-send-otp-button-login-wp" 
@@ -292,11 +292,11 @@ class Sms_Login_Register_Public {
                         data-phone-field="#slr_phone_login_wp" <?php // Added phone field data attribute ?>
                         data-message-target="#slr-message-login-wp" 
                         class="button button-secondary slr-send-otp-button-generic">
-                    <?php _e( 'Send OTP', 'sms-login-register' ); ?>
+                    <?php _e( 'ارسال پیامک', 'yakutlogin' ); ?>
                 </button>
             </p>
             <p>
-                <label for="slr_otp_code_login_wp"><?php _e( 'One-Time Password (OTP)', 'sms-login-register' ); ?></label>
+                <label for="slr_otp_code_login_wp"><?php _e( 'کد یکبار مصرف', 'yakutlogin' ); ?></label>
                 <input type="text" name="slr_otp_code" id="slr_otp_code_login_wp" class="input" value="" size="20" autocomplete="off" />
             </p>
             <div id="slr-message-login-wp" class="slr-message-area" style="margin-top:10px;"></div>
@@ -332,15 +332,15 @@ class Sms_Login_Register_Public {
         }
         ?>
         <div class="slr-otp-wp-register-section">
-            <h4><?php _e('Verify with OTP', 'sms-login-register'); ?></h4>
+            <h4><?php _e('احراز توسط کد یکبار مصرف', 'yakutlogin'); ?></h4>
             <?php if ($sms_enabled): ?>
             <p>
-                <label for="slr_phone_register_wp"><?php _e('Mobile Number (for OTP verification)', 'sms-login-register'); ?></label>
+                <label for="slr_phone_register_wp"><?php _e('تلفن همراه', 'yakutlogin'); ?></label>
                 <input type="tel" name="slr_phone_wp_register" id="slr_phone_register_wp" class="input" value="" size="20" />
-                 <p class="description"><em><?php _e('An OTP will be sent to your email (entered above) or phone number for verification.', 'sms-login-register'); ?></em></p>
+                 <p class="description"><em><?php _e('کد تایید به ایمیل یا شماره موبایل شما ارسال خواهد شد', 'yakutlogin'); ?></em></p>
             </p>
             <?php else: ?>
-            <p class="description"><em><?php _e( 'An OTP will be sent to your email (entered above) for verification.', 'sms-login-register' ); ?></em></p>
+            <p class="description"><em><?php _e( 'کد تایید به ایمیل یا شماره موبایل شما ارسال خواهد شد', 'yakutlogin' ); ?></em></p>
             <?php endif; ?>
             <p>
                 <button type="button" id="slr-send-otp-button-register-wp" 
@@ -348,11 +348,11 @@ class Sms_Login_Register_Public {
                         data-phone-field="#slr_phone_register_wp" <?php // Added phone field data attribute ?>
                         data-message-target="#slr-message-register-wp" 
                         class="button button-secondary slr-send-otp-button-generic">
-                    <?php _e( 'Send OTP', 'sms-login-register' ); ?>
+                    <?php _e( 'ارسال کد تایید', 'yakutlogin' ); ?>
                 </button>
             </p>
             <p>
-                <label for="slr_otp_code_register_wp"><?php _e( 'One-Time Password (OTP)', 'sms-login-register' ); ?></label>
+                <label for="slr_otp_code_register_wp"><?php _e( 'ارسال کد تایید', 'yakutlogin' ); ?></label>
                 <input type="text" name="slr_otp_code" id="slr_otp_code_register_wp" class="input" value="" size="20" autocomplete="off" />
             </p>
             <div id="slr-message-register-wp" class="slr-message-area" style="margin-top:10px;"></div>
@@ -383,8 +383,8 @@ class Sms_Login_Register_Public {
         if ( ! isset( $options['email_otp_enabled'] ) || ! $options['email_otp_enabled'] ) {
             return false;
         }
-        $subject_template = isset( $options['otp_email_subject'] ) ? $options['otp_email_subject'] : __( 'Your One-Time Password', 'sms-login-register' );
-        $body_template = isset( $options['otp_email_body'] ) ? $options['otp_email_body'] : __( "Your OTP code is: {otp_code}\nThis code is valid for 5 minutes.", 'sms-login-register' );
+        $subject_template = isset( $options['otp_email_subject'] ) ? $options['otp_email_subject'] : __( 'کد تایید شما', 'yakutlogin' );
+        $body_template = isset( $options['otp_email_body'] ) ? $options['otp_email_body'] : __( "کد تایید شما : {otp_code}\nاین کد به مدت 5 دقیقه معتبر میباشد.", 'yakutlogin' );
         $subject = str_replace( '{otp_code}', $otp, $subject_template );
         $body = str_replace( '{otp_code}', $otp, $body_template );
         $body = str_replace( '{site_title}', get_bloginfo( 'name' ), $body );
@@ -412,7 +412,7 @@ class Sms_Login_Register_Public {
         $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
         
         if ( $captcha_handler && !$captcha_handler->verify_captcha( $captcha_response_token ) ) {
-            wp_send_json_error( array( 'message' => __( 'CAPTCHA verification failed. Please try again.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'کپچا تایید نشد . لطفا مجدد تلاش کنید', 'yakutlogin' ) ) );
             return;
         }
 
@@ -435,7 +435,7 @@ class Sms_Login_Register_Public {
                 $identifier = $normalized_phone;
                 $send_method = 'sms';
             } else {
-                 wp_send_json_error( array( 'message' => __( 'Invalid phone number format.', 'sms-login-register' ) ) );
+                 wp_send_json_error( array( 'message' => __( 'تلفن همراه نامعتبر میباشد', 'yakutlogin' ) ) );
                  return;
             }
         } elseif (!empty($email) && is_email($email) && isset($options['email_otp_enabled']) && $options['email_otp_enabled']) {
@@ -443,19 +443,19 @@ class Sms_Login_Register_Public {
             $send_method = 'email';
         } else {
             if (empty($phone) && empty($email)) {
-                 wp_send_json_error( array( 'message' => __( 'Please provide an email or phone number.', 'sms-login-register' ) ) );
+                 wp_send_json_error( array( 'message' => __( 'ایمیل یا شماره موبایل خود را وارد کنید', 'yakutlogin' ) ) );
             } elseif (!empty($phone) && !$active_sms_provider) {
-                 wp_send_json_error( array( 'message' => __( 'SMS sending is not configured. Please try email or contact admin.', 'sms-login-register' ) ) );
+                 wp_send_json_error( array( 'message' => __( 'سرویس پیامکی فعال نمیباشد . لطفا با مدیریت تماس بگیرید', 'yakutlogin' ) ) );
             } elseif (!empty($email) && (!isset($options['email_otp_enabled']) || !$options['email_otp_enabled'])) {
-                 wp_send_json_error( array( 'message' => __( 'Email OTP is disabled. Please try phone or contact admin.', 'sms-login-register' ) ) );
+                 wp_send_json_error( array( 'message' => __( 'ارسال کد تایید با ایمیل غیرفعال میباشد', 'yakutlogin' ) ) );
             } else {
-                 wp_send_json_error( array( 'message' => __( 'Could not determine how to send OTP. Please check input.', 'sms-login-register' ) ) );
+                 wp_send_json_error( array( 'message' => __( 'لطفا ایمیل یا تلفن همراه خود را مجددا چک کنید', 'yakutlogin' ) ) );
             }
             return;
         }
 
         if ( class_exists('Sms_Login_Register_Otp_Handler') && Sms_Login_Register_Otp_Handler::is_on_cooldown( $identifier, 60 ) ) {
-            wp_send_json_error( array( 'message' => __( 'Please wait a moment before requesting another OTP.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'لطفا 60 ثانیه صبر کنید تا بتوانید کد جدید ارسال کنید', 'yakutlogin' ) ) );
             return;
         }
 
@@ -463,19 +463,19 @@ class Sms_Login_Register_Public {
         $stored = class_exists('Sms_Login_Register_Otp_Handler') ? Sms_Login_Register_Otp_Handler::store_otp( $identifier, $otp ) : false;
 
         if ( ! $stored ) {
-            wp_send_json_error( array( 'message' => __( 'Could not store OTP. Please try again.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'لطفا مجددا تلاش کنید', 'yakutlogin' ) ) );
             return;
         }
 
         $sent_successfully = false;
         if ($send_method === 'sms' && $gateway_manager) {
             $sent_successfully = $gateway_manager->send_otp( $identifier, $otp );
-            $message_on_success = __( 'OTP has been sent to your phone number.', 'sms-login-register' );
-            $message_on_fail = __( 'Could not send OTP SMS. Please check your phone number or contact support.', 'sms-login-register' );
+            $message_on_success = __( 'کد تایید با موفقیت ارسال شد', 'yakutlogin' );
+            $message_on_fail = __( 'امکان ارسال کد تایید وجود ندارد', 'yakutlogin' );
         } elseif ($send_method === 'email') {
             $sent_successfully = $this->send_otp_email( $identifier, $otp );
-            $message_on_success = __( 'OTP has been sent to your email address.', 'sms-login-register' );
-            $message_on_fail = __( 'Could not send OTP email. Please check your site\'s email configuration or contact support.', 'sms-login-register' );
+            $message_on_success = __( 'کد تایید به ایمیل شما ارسال شد', 'yakutlogin' );
+            $message_on_fail = __( 'امکان ارسال کد تایید وجود ندارد', 'yakutlogin' );
         }
 
         if ( $sent_successfully ) {
@@ -516,16 +516,16 @@ class Sms_Login_Register_Public {
                     if ($user_obj_by_login && !empty($user_obj_by_login->user_email)) {
                         $identifier_for_otp = $user_obj_by_login->user_email;
                     } else if (!empty($identifier_from_username_field)){ // if user entered something but it's not email/valid username
-                         return new WP_Error( 'slr_otp_error', __( 'Please enter your valid email or use SMS OTP if available.', 'sms-login-register' ) );
+                         return new WP_Error( 'slr_otp_error', __( 'لطفا یک ایمیل معتبر وارد کنید', 'yakutlogin' ) );
                     }
                 }
             }
 
             if ( empty( $identifier_for_otp ) ) {
-                return new WP_Error( 'slr_otp_error', __( 'Username, email or phone is required for OTP login.', 'sms-login-register' ) );
+                return new WP_Error( 'slr_otp_error', __( 'نام کاربری ، ایمیل یا شماره همراه شما نادرست میباشد', 'yakutlogin' ) );
             }
             if( empty( $submitted_otp ) ){
-                 return new WP_Error( 'slr_otp_error', __( 'OTP cannot be empty.', 'sms-login-register' ) );
+                 return new WP_Error( 'slr_otp_error', __( 'کد تایید نمیتواند خالی باشد', 'yakutlogin' ) );
             }
             
             // CAPTCHA for wp-login.php form submission
@@ -535,7 +535,7 @@ class Sms_Login_Register_Public {
                 $options = get_option('slr_plugin_options');
                 $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
                 if ($captcha_type !== 'none' && !$captcha_handler->verify_captcha( $captcha_response_token )) {
-                     return new WP_Error('slr_captcha_error', __('CAPTCHA verification failed.', 'sms-login-register'));
+                     return new WP_Error('slr_captcha_error', __('کپچا تایید نشد.', 'yakutlogin'));
                 }
             }
 
@@ -558,13 +558,13 @@ class Sms_Login_Register_Public {
                     Sms_Login_Register_Otp_Handler::delete_otp( $identifier_for_otp );
                     return $user_obj_to_login;
                 } else {
-                    return new WP_Error( 'slr_otp_error', __( 'OTP verified, but no user found with this identifier.', 'sms-login-register' ) );
+                    return new WP_Error( 'slr_otp_error', __( 'اکانت شما وجود ندارد.', 'yakutlogin' ) );
                 }
             } else {
-                return new WP_Error( 'slr_otp_error', __( 'Invalid or expired OTP. Please try again.', 'sms-login-register' ) );
+                return new WP_Error( 'slr_otp_error', __( 'کد تایید شما نادرست میباشد', 'yakutlogin' ) );
             }
         } elseif ( isset( $_POST['slr_action'] ) && $_POST['slr_action'] === 'login_with_otp' && ( !isset($_POST['slr_otp_code']) || empty($_POST['slr_otp_code']) ) ) {
-             return new WP_Error( 'slr_otp_error', __( 'Please enter the OTP sent to your email or phone.', 'sms-login-register' ) );
+             return new WP_Error( 'slr_otp_error', __( 'لطفا کد تایید ارسال شده به ایمیل یا شماره همراه را وارد کنید', 'yakutlogin' ) );
         }
         return $user;
     }
@@ -584,7 +584,7 @@ class Sms_Login_Register_Public {
                 $options = get_option('slr_plugin_options');
                 $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
                 if ($captcha_type !== 'none' && !$captcha_handler->verify_captcha( $captcha_response_token )) {
-                    $errors->add('slr_captcha_error', __('CAPTCHA verification failed.', 'sms-login-register'));
+                    $errors->add('slr_captcha_error', __('کپچا تایید نشد.', 'yakutlogin'));
                     return $errors; // Return early if CAPTCHA fails
                 }
             }
@@ -603,9 +603,9 @@ class Sms_Login_Register_Public {
             }
 
             if ( empty($submitted_otp) ) {
-                $errors->add( 'slr_otp_required', __( 'Please enter the OTP sent to your email/phone to complete registration.', 'sms-login-register' ) );
+                $errors->add( 'slr_otp_required', __( 'لطفا کد تایید ارسال شده به ایمیل یا تلفن همراه را وارد کنید', 'yakutlogin' ) );
             } elseif ( class_exists('Sms_Login_Register_Otp_Handler') && !Sms_Login_Register_Otp_Handler::verify_otp( $identifier_for_otp, $submitted_otp ) ) {
-                $errors->add( 'slr_otp_error', __( 'Invalid or expired OTP. Please request a new one and try again.', 'sms-login-register' ) );
+                $errors->add( 'slr_otp_error', __( 'کد تایید وارد شده نادرست میباشد', 'yakutlogin' ) );
             } else {
                 if (class_exists('Sms_Login_Register_Otp_Handler')) Sms_Login_Register_Otp_Handler::delete_otp( $identifier_for_otp );
                 // If phone was used for OTP and it's a new registration, save it to user meta.
@@ -632,7 +632,7 @@ class Sms_Login_Register_Public {
         $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
 
         if ( $captcha_handler && !$captcha_handler->verify_captcha( $captcha_response_token ) ) {
-            wp_send_json_error( array( 'message' => __( 'CAPTCHA verification failed. Please try again.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'کپچا تایید نشد.', 'sms-login-register' ) ) );
             return;
         }
 
@@ -660,7 +660,7 @@ class Sms_Login_Register_Public {
         }
 
         if ( empty( $identifier ) ) {
-            wp_send_json_error( array( 'message' => __( 'A valid email or phone number is required.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'ایمیل یا شماره تلفن معتبر وارد کنید', 'yakutlogin' ) ) );
             return;
         }
 
@@ -672,12 +672,12 @@ class Sms_Login_Register_Public {
         // }
 
         if ( empty( $otp_code ) ) {
-            wp_send_json_error( array( 'message' => __( 'OTP cannot be empty.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'کد تایید نمیتواند خالی بماند', 'yakutlogin' ) ) );
             return;
         }
 
         if ( class_exists('Sms_Login_Register_Otp_Handler') && !Sms_Login_Register_Otp_Handler::verify_otp( $identifier, $otp_code ) ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid or expired OTP. Please request a new one.', 'sms-login-register' ) ) );
+            wp_send_json_error( array( 'message' => __( 'کد تایید منقضی شده است . مجددا ارسال کنید', 'yakutlogin' ) ) );
             return;
         }
 
@@ -706,7 +706,7 @@ class Sms_Login_Register_Public {
 
             $redirect_url = !empty($redirect_to_custom) ? $redirect_to_custom : apply_filters('slr_login_redirect_url_default', admin_url(), $user);
             wp_send_json_success( array( 
-                'message' => __( 'Login successful! Redirecting...', 'sms-login-register' ),
+                'message' => __( 'با موفقیت وارد شدید . درحال انتقال....', 'sms-login-register' ),
                 'redirect_url' => apply_filters('slr_login_redirect_url', $redirect_url, $user)
             ) );
         } else {
@@ -731,7 +731,7 @@ class Sms_Login_Register_Public {
                     }
                 }
             } else {
-                 wp_send_json_error( array( 'message' => __( 'Cannot register user without a valid method (email/phone).', 'sms-login-register' ) ) );
+                 wp_send_json_error( array( 'message' => __( 'امکان ثبت نام بدون ایمیل یا شماره تلفن وجود ندارد', 'yakutlogin' ) ) );
                  return;
             }
 
@@ -749,7 +749,7 @@ class Sms_Login_Register_Public {
             
             $redirect_url = !empty($redirect_to_custom) ? $redirect_to_custom : apply_filters('slr_registration_redirect_url_default', admin_url(), $new_user);
             wp_send_json_success( array(
-                'message' => __( 'Registration successful! Logging you in...', 'sms-login-register' ),
+                'message' => __( 'ثبت نام با موفقیت انجام شد . درحال انتقال....', 'yakutlogin' ),
                 'redirect_url' => apply_filters('slr_registration_redirect_url', $redirect_url, $new_user)
             ) );
         }

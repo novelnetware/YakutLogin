@@ -82,7 +82,7 @@ class Sms_Login_Register_Admin {
 
         wp_send_json_success( [ 'html' => $fields_html ] );
     }
-}
+
 
   
 
@@ -417,3 +417,5 @@ public function enqueue_scripts( $hook ) {
         }
     }
 }
+
+

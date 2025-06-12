@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define constants
  */
-define( 'SLR_PLUGIN_VERSION', '1.5.0' ); // SLR for SMS Login Register
+define( 'SLR_PLUGIN_VERSION', '1.9.0' ); // SLR for SMS Login Register
 define( 'SLR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SLR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

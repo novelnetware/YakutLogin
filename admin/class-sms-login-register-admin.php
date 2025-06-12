@@ -23,15 +23,94 @@ class Sms_Login_Register_Admin {
         } else {
             $this->gateway_manager = null;
         }
+        add_action( 'wp_ajax_yakutlogin_save_settings', array( $this, 'ajax_save_settings' ) );
+        add_action( 'wp_ajax_yakutlogin_get_gateway_fields', array( $this, 'ajax_get_gateway_fields' ) );
     }
 
-    public function enqueue_styles( $hook ) {
-        // Enqueue admin-specific styles here if needed.
+     /**
+     * هندلر ایجکس برای ذخیره تنظیمات
+     */
+    public function ajax_save_settings() {
+        check_ajax_referer( 'yakutlogin_admin_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => 'دسترسی غیرمجاز' ] );
+        }
+
+        if ( isset( $_POST['settings'] ) ) {
+            parse_str( $_POST['settings'], $form_data );
+            $sanitized_data = $this->sanitize_settings( $form_data );
+            update_option( 'slr_plugin_options', $sanitized_data );
+            wp_send_json_success( [ 'message' => 'تنظیمات با موفقیت ذخیره شد!' ] );
+        } else {
+            wp_send_json_error( [ 'message' => 'اطلاعاتی برای ذخیره ارسال نشده است.' ] );
+        }
     }
 
-    public function enqueue_scripts( $hook ) {
-        // Enqueue admin-specific scripts here if needed.
+    /**
+     * هندلر ایجکس برای دریافت فیلدهای درگاه پیامک
+     */
+    public function ajax_get_gateway_fields() {
+        check_ajax_referer( 'yakutlogin_admin_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error();
+        }
+
+        $gateway_id = isset( $_POST['gateway_id'] ) ? sanitize_key( $_POST['gateway_id'] ) : '';
+        if ( empty( $gateway_id ) ) {
+            wp_send_json_success( [ 'html' => '' ] );
+        }
+        
+        $gateway = $this->gateway_manager->get_available_gateways()[$gateway_id] ?? null;
+        if (!$gateway) {
+            wp_send_json_error();
+        }
+
+        $options = get_option('slr_plugin_options', []);
+        $fields_html = '';
+        
+        ob_start();
+        echo '<h3>تنظیمات ' . esc_html($gateway->get_name()) . '</h3>';
+        foreach ($gateway->get_settings_fields() as $field_id => $field_args) {
+            echo '<div class="setting-option">';
+            echo '<label>' . esc_html($field_args['label']) . '</label>';
+            $this->render_setting_field($field_id, $field_args['type'], $options, $field_args['desc'] ?? '');
+            echo '</div>';
+        }
+        $fields_html = ob_get_clean();
+
+        wp_send_json_success( [ 'html' => $fields_html ] );
     }
+}
+
+  
+
+public function enqueue_styles( $hook ) {
+    // فقط در صفحه تنظیمات افزونه این فایل‌ها را بارگذاری کن
+    if ( 'toplevel_page_' . $this->plugin_name . '-settings' !== $hook ) {
+        return;
+    }
+    // فراخوانی Font Awesome از CDN
+    wp_enqueue_style( 'font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css', array(), '6.0.0' );
+    // فراخوانی فایل CSS پنل جدید
+    wp_enqueue_style( $this->plugin_name . '-admin-panel', plugin_dir_url( __FILE__ ) . 'assets/css/yakutlogin-admin-panel.css', array(), $this->version, 'all' );
+}
+
+public function enqueue_scripts( $hook ) {
+    // فقط در صفحه تنظیمات افزونه این فایل‌ها را بارگذاری کن
+    if ( 'toplevel_page_' . $this->plugin_name . '-settings' !== $hook ) {
+        return;
+    }
+    // فراخوانی فایل JS پنل جدید
+    wp_enqueue_script( $this->plugin_name . '-admin-panel', plugin_dir_url( __FILE__ ) . 'assets/js/yakutlogin-admin-panel.js', array( 'jquery' ), $this->version, true );
+
+    // ارسال داده‌های لازم از PHP به JavaScript (برای ایجکس)
+    wp_localize_script( $this->plugin_name . '-admin-panel', 'yakutlogin_admin_ajax', array(
+        'ajax_url' => admin_url( 'admin-ajax.php' ),
+        'nonce'    => wp_create_nonce( 'yakutlogin_admin_nonce' ),
+    ) );
+}
 
     public function add_plugin_admin_menu() {
         add_menu_page(
@@ -46,7 +125,42 @@ class Sms_Login_Register_Admin {
     }
 
     public function display_plugin_setup_page() {
-        require_once SLR_PLUGIN_DIR . 'admin/partials/sms-login-register-admin-display.php';
+        require_once plugin_dir_path( __FILE__ ) . 'partials/yakutlogin-admin-panel-display.php';
+    }
+
+    public function render_setting_field( $id, $type, $options, $placeholder = '' ) {
+        $value = isset( $options[$id] ) ? $options[$id] : '';
+
+        switch ($type) {
+            case 'checkbox':
+                echo '<label class="switch">';
+                echo '<input type="checkbox" name="' . esc_attr($id) . '" value="1" ' . checked(1, $value, false) . '>';
+                echo '<span class="slider"></span>';
+                echo '</label>';
+                break;
+
+            case 'text':
+                echo '<input type="text" class="setting-input" name="' . esc_attr($id) . '" value="' . esc_attr($value) . '" placeholder="' . esc_attr($placeholder) . '">';
+                break;
+            
+            case 'textarea':
+                echo '<textarea class="setting-textarea" name="' . esc_attr($id) . '">' . esc_textarea($value) . '</textarea>';
+                break;
+
+           case 'select_gateway':
+        case 'select_gateway_backup': // هر دو از یک منطق استفاده می‌کنند
+            $gateways = $this->gateway_manager->get_available_gateways();
+            $select_id = ($type === 'select_gateway') ? 'primary-sms-provider-select' : 'backup-sms-provider-select';
+
+            echo '<select name="' . esc_attr($id) . '" class="setting-select" id="' . esc_attr($select_id) . '">';
+            echo '<option value="">-- غیرفعال --</option>'; // تغییر به غیرفعال
+            foreach ($gateways as $gateway_id => $gateway) {
+                // درگاه پشتیبان نمی‌تواند با درگاه اصلی یکی باشد (این منطق در JS پیاده‌سازی می‌شود)
+                echo '<option value="' . esc_attr($gateway_id) . '" ' . selected($gateway_id, $value, false) . '>' . esc_html($gateway->get_name()) . '</option>';
+            }
+            echo '</select>';
+            break;
+    }
     }
 
     public function register_settings() {
@@ -138,7 +252,7 @@ class Sms_Login_Register_Admin {
             'google_login_enabled' => 'bool', 'google_client_id' => 'text', 'google_client_secret' => 'text',
             'captcha_type' => 'text', 'recaptcha_v2_site_key' => 'text', 'recaptcha_v2_secret_key' => 'text',
             'turnstile_site_key' => 'text', 'turnstile_secret_key' => 'text',
-            'wc_checkout_otp_integration' => 'bool', 'sms_provider' => 'text', 'sms_otp_template' => 'text',
+            'wc_checkout_otp_integration' => 'bool', 'sms_provider' => 'text', 'sms_otp_template' => 'text','sms_provider_backup' => 'text',
         ];
 
         if ($this->gateway_manager) {

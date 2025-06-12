@@ -3,7 +3,7 @@
  * Plugin Name:       YakutLogin
  * Plugin URI:        https://yakut.ir/plugins/yakutlogin/
  * Description:       Enables SMS-based login and registration with OTP, email OTP, Google Login, and CAPTCHA support.
- * Version:           1.5.0
+ * Version:           1.9.0
  * Author:            Yakut
  * Author URI:        https://yakut.ir/
  * License:           GPL v2 or later
@@ -27,6 +27,13 @@ define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 // Constants for Elementor widget temporary instantiation
 define( 'SLR_PLUGIN_NAME_FOR_INSTANCE', 'sms-login-register' );
 define( 'SLR_PLUGIN_VERSION_FOR_INSTANCE', SLR_PLUGIN_VERSION );
+
+/**
+ * Load Composer's autoloader.
+ */
+if ( file_exists( SLR_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+    require_once SLR_PLUGIN_DIR . 'vendor/autoload.php';
+}
 
 /**
  * The core plugin class that is used to define internationalization,
@@ -61,6 +68,25 @@ function slr_activate_plugin() {
         );
         update_option( 'slr_plugin_options', $default_options );
     }
+     // ایجاد جدول برای کلیدهای WebAuthn
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'slr_webauthn_credentials';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE $table_name (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
+        credential_id VARBINARY(255) NOT NULL,
+        public_key TEXT NOT NULL,
+        signature_counter BIGINT(20) UNSIGNED NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY credential_id (credential_id(100)),
+        KEY user_id (user_id)
+    ) $charset_collate;";
+
+    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+    dbDelta( $sql );
 }
 register_activation_hook( __FILE__, 'slr_activate_plugin' );
 

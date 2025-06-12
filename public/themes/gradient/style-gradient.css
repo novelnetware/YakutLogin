@@ -1,0 +1,51 @@
+/* === پوسته جدید: طیف رنگ (Gradient) === */
+.slr-otp-form-container.slr-theme-gradient {
+    background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%); /* پس‌زمینه با طیف رنگ */
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+}
+
+.slr-otp-form-container.slr-theme-gradient label {
+    color: #f0f0f0; /* رنگ لیبل‌ها */
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-input {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 5px;
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-input::placeholder {
+    color: #e0e0e0;
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-button {
+    border-radius: 25px; /* دکمه‌های کپسولی */
+    border: 1px solid #ffffff;
+    background-color: transparent;
+    transition: all 0.3s ease;
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-button:hover {
+    background-color: #ffffff;
+    color: #2575fc;
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-divider-row .slr-divider-text {
+    color: #f0f0f0;
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-divider-row .slr-divider-text::before,
+.slr-otp-form-container.slr-theme-gradient .slr-divider-row .slr-divider-text::after {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.slr-otp-form-container.slr-theme-gradient .slr-message-area.slr-success,
+.slr-otp-form-container.slr-theme-gradient .slr-message-area.slr-info,
+.slr-otp-form-container.slr-theme-gradient .slr-message-area.slr-error {
+    color: #ffffff;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}

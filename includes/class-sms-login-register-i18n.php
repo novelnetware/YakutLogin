@@ -33,7 +33,7 @@ class Sms_Login_Register_i18n {
      */
     public function load_plugin_textdomain() {
         load_plugin_textdomain(
-            'sms-login-register', // The plugin's text domain. Must match the Text Domain in the plugin header.
+            'yakutlogin', // The plugin's text domain. Must match the Text Domain in the plugin header.
             false, // Deprecated parameter.
             dirname( plugin_basename( SLR_PLUGIN_DIR ) ) . '/languages/' // Path to the .mo file.
         );

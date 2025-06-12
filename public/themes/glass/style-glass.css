@@ -1,0 +1,36 @@
+
+/* === پوسته جدید: شیشه‌ای (Glassmorphism) === */
+.slr-otp-form-container.slr-theme-glass {
+    background: rgba(255, 255, 255, 0.25); /* پس‌زمینه نیمه‌شفاف */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px); /* افکت بلور اصلی برای شیشه‌ای شدن */
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #333; /* رنگ متن برای خوانایی روی پس‌زمینه‌های مختلف */
+}
+
+.slr-otp-form-container.slr-theme-glass label {
+    color: #333; /* رنگ لیبل‌ها */
+    font-weight: bold;
+}
+
+.slr-otp-form-container.slr-theme-glass .slr-input {
+    background: rgba(255, 255, 255, 0.5); /* ورودی‌های کمی شفاف */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #333;
+    border-radius: 5px;
+}
+
+.slr-otp-form-container.slr-theme-glass .slr-input::placeholder {
+    color: #555;
+}
+
+.slr-otp-form-container.slr-theme-glass .slr-divider-row .slr-divider-text {
+    color: #444;
+}
+
+.slr-otp-form-container.slr-theme-glass .slr-divider-row .slr-divider-text::before,
+.slr-otp-form-container.slr-theme-glass .slr-divider-row .slr-divider-text::after {
+    background-color: rgba(255, 255, 255, 0.3);
+}

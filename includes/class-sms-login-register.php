@@ -65,6 +65,15 @@ class Sms_Login_Register {
      * @var      SLR_Gateway_Manager    $gateway_manager    Manages SMS gateways.
      */
     protected $gateway_manager;
+
+    /**
+     * The Theme manager.
+     *
+     * @since    1.5.0
+     * @access   protected
+     * @var      SLR_Theme_Manager    $theme_manager    Manages form themes.
+     */
+    protected $theme_manager;
     
     /**
      * The public-facing functionality of the plugin.
@@ -74,6 +83,8 @@ class Sms_Login_Register {
      * @var      Sms_Login_Register_Public    $public_handler    Handles public-facing logic.
      */
     protected $public_handler;
+
+    protected $webauthn_handler;
 
     /**
      * Define the core functionality of the plugin.
@@ -97,8 +108,20 @@ class Sms_Login_Register {
         $this->load_dependencies();
 
         // Now that class files are loaded, we can instantiate our handlers
+        $this->theme_manager = SLR_Theme_Manager::get_instance(); // Add this line
         $this->public_handler = new Sms_Login_Register_Public( $this->get_plugin_name(), $this->get_version() );
         $this->gateway_manager = new SLR_Gateway_Manager();
+
+         if (class_exists('SLR_WebAuthn_Handler')) {
+    $this->webauthn_handler = new SLR_WebAuthn_Handler();
+    // اکشن‌های ثبت‌نام (برای کاربر لاگین کرده)
+    $this->loader->add_action('wp_ajax_yakutlogin_get_registration_options', $this->webauthn_handler, 'ajax_get_registration_options');
+    $this->loader->add_action('wp_ajax_yakutlogin_verify_registration', $this->webauthn_handler, 'ajax_verify_registration');
+
+    // اکشن‌های ورود (برای کاربر مهمان) - این‌ها را اضافه کنید
+    $this->loader->add_action('wp_ajax_nopriv_yakutlogin_get_authentication_options', $this->webauthn_handler, 'ajax_get_authentication_options');
+    $this->loader->add_action('wp_ajax_nopriv_yakutlogin_verify_authentication', $this->webauthn_handler, 'ajax_verify_authentication');
+}
 
         // Proceed with setting up hooks and integrations
         $this->set_locale();
@@ -175,9 +198,13 @@ class Sms_Login_Register {
          */
         require_once SLR_PLUGIN_DIR . 'public/class-sms-login-register-public.php';
 
+        require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-theme-manager.php';
+
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-gateway-manager.php';
 
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-captcha-handler.php';
+
+        require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-webauthn-handler.php';
 
         if ( class_exists( 'WooCommerce' ) ) {
             require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-woocommerce-integration.php';
@@ -296,6 +323,16 @@ class Sms_Login_Register {
      */
     public function get_loader() {
         return $this->loader;
+    }
+
+    /**
+     * Retrieve the theme manager.
+     *
+     * @since     1.5.0
+     * @return    SLR_Theme_Manager    The theme manager instance.
+     */
+    public function get_theme_manager() {
+        return $this->theme_manager;
     }
 
     /**

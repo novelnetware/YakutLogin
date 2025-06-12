@@ -1,0 +1,6 @@
+/* --- Theme: Default (already covered by base styles or minor additions) --- */
+.slr-otp-form-container.slr-theme-default {
+    /* Default theme might just use base styles */
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}

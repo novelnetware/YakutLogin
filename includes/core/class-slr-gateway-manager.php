@@ -2,24 +2,20 @@
 /**
  * Manages SMS Gateways.
  *
- * @link       https://example.com/
- * @since      1.0.2
- *
- * @package    Sms_Login_Register
- * @subpackage Sms_Login_Register/includes/core
+ * @since 1.5.1 (Refactored for Fallback Gateway)
  */
-
 class SLR_Gateway_Manager {
 
     private $gateways = array();
-    private $active_gateway_id = null;
-    private $active_gateway_instance = null;
     private $options = array();
+
+    private $primary_gateway_instance = null;
+    private $backup_gateway_instance = null;
 
     public function __construct() {
         $this->options = get_option( 'slr_plugin_options', array() );
         $this->load_gateways();
-        $this->set_active_gateway();
+        $this->set_active_gateways(); // نام متد تغییر کرد
     }
 
     /**
@@ -79,63 +75,76 @@ class SLR_Gateway_Manager {
         $this->gateways = apply_filters( 'slr_register_sms_gateways', $this->gateways );
     }
 
-    /**
-     * Sets the active gateway based on plugin settings.
+   /**
+     * Sets the primary and backup gateway instances based on plugin settings.
      */
-    private function set_active_gateway() {
-        $this->active_gateway_id = isset( $this->options['sms_provider'] ) ? $this->options['sms_provider'] : null;
-        if ( $this->active_gateway_id && isset( $this->gateways[$this->active_gateway_id] ) ) {
-            $this->active_gateway_instance = $this->gateways[$this->active_gateway_id];
+    private function set_active_gateways() {
+        $primary_id = $this->options['sms_provider'] ?? null;
+        $backup_id  = $this->options['sms_provider_backup'] ?? null;
+
+        if ( $primary_id && isset( $this->gateways[$primary_id] ) ) {
+            $this->primary_gateway_instance = $this->gateways[$primary_id];
+        }
+
+        if ( $backup_id && isset( $this->gateways[$backup_id] ) && $backup_id !== $primary_id ) {
+            $this->backup_gateway_instance = $this->gateways[$backup_id];
         }
     }
 
-    /**
-     * Returns an array of all available (loaded) gateways.
-     * @return SLR_Sms_Gateway[]
-     */
     public function get_available_gateways() {
         return $this->gateways;
     }
 
     /**
-     * Returns the currently active gateway instance.
+     * Returns the currently active primary gateway instance.
      * @return SLR_Sms_Gateway|null
      */
     public function get_active_gateway() {
-        return $this->active_gateway_instance;
+        return $this->primary_gateway_instance;
     }
     
     /**
-     * Returns the ID of the currently active gateway.
-     * @return string|null
-     */
-    public function get_active_gateway_id() {
-        return $this->active_gateway_id;
-    }
-
-    /**
-     * Sends an SMS using the active gateway.
+     * Sends an SMS using the active gateway, with a fallback to the backup gateway.
      *
      * @param string $phone_number The recipient's phone number.
      * @param string $otp_code The OTP code.
      * @return bool True on success, false on failure.
      */
     public function send_otp( $phone_number, $otp_code ) {
-        if ( ! $this->active_gateway_instance ) {
-            error_log('SLR Error: No active SMS gateway configured or found.');
+        // ۱. بررسی وجود درگاه اصلی
+        if ( ! $this->primary_gateway_instance ) {
+            error_log('YakutLogin Error: No primary SMS gateway is configured.');
             return false;
         }
 
-        $phone_number = $this->normalize_iranian_phone($phone_number);
-        if (!$phone_number) {
-             error_log('SLR Error: Invalid phone number format for SMS OTP.');
+        // نرمال‌سازی شماره تلفن
+        $normalized_phone = $this->normalize_iranian_phone($phone_number);
+        if (!$normalized_phone) {
+            error_log('YakutLogin Error: Invalid phone number format for SMS OTP.');
             return false;
         }
-
-        $message_template = isset($this->options['sms_otp_template']) ? $this->options['sms_otp_template'] : __("Your OTP code is: {otp_code}", "sms-login-register");
-        $message = str_replace('{otp_code}', $otp_code, $message_template);
         
-        return $this->active_gateway_instance->send_sms( $phone_number, $message, $otp_code );
+        $message_template = $this->options['sms_otp_template'] ?? "کد تایید شما: {otp_code}";
+        $message = str_replace('{otp_code}', $otp_code, $message_template);
+
+        // ۲. تلاش برای ارسال با درگاه اصلی
+        $sent_successfully = $this->primary_gateway_instance->send_sms( $normalized_phone, $message, $otp_code );
+
+        // ۳. اگر موفق بود، نتیجه را برگردان
+        if ( $sent_successfully ) {
+            return true;
+        }
+
+        // ۴. اگر ناموفق بود و درگاه پشتیبان وجود داشت، با آن تلاش کن
+        error_log('YakutLogin Fallback: Primary gateway (' . $this->primary_gateway_instance->get_name() . ') failed. Attempting backup.');
+
+        if ( ! $this->backup_gateway_instance ) {
+            error_log('YakutLogin Fallback: No backup gateway configured.');
+            return false; // ارسال ناموفق بود و پشتیبانی هم وجود ندارد
+        }
+        
+        // ۵. تلاش برای ارسال با درگاه پشتیبان
+        return $this->backup_gateway_instance->send_sms( $normalized_phone, $message, $otp_code );
     }
 
     /**

@@ -37,6 +37,11 @@ class SLR_Otp_Form_Widget extends Widget_Base {
     }
 
     protected function register_controls() {
+
+        // Get themes dynamically
+        $theme_manager = class_exists('SLR_Theme_Manager') ? \SLR_Theme_Manager::get_instance() : null;
+        $available_themes = $theme_manager ? $theme_manager->get_themes_for_select() : ['default' => __('پیش‌فرض', 'yakutlogin')];
+
         // --- Content Tab ---
         $this->start_controls_section(
             'content_section_settings',
@@ -78,13 +83,7 @@ class SLR_Otp_Form_Widget extends Widget_Base {
                 'label' => __( 'پوسته فرم', 'yakutlogin' ),
                 'type' => Controls_Manager::SELECT,
                 'default' => 'default',
-                'options' => [
-                    'default'  => __( 'پیش‌فرض', 'yakutlogin' ),
-                    'minimal' => __( 'ساده', 'yakutlogin' ),
-                    'dark'    => __( 'تیره', 'yakutlogin' ),
-                    'glass'   => __( 'شیشه‌ای', 'yakutlogin' ),
-                    'gradient'=> __( 'گرادینت', 'yakutlogin' ),
-                ],
+                'options' => $available_themes, // Use the dynamic list here
             ]
         );
 
@@ -314,6 +313,8 @@ class SLR_Otp_Form_Widget extends Widget_Base {
         if (class_exists('Sms_Login_Register_Public')) {
             $plugin_name = defined('SLR_PLUGIN_NAME_FOR_INSTANCE') ? SLR_PLUGIN_NAME_FOR_INSTANCE : 'sms-login-register';
             $plugin_version = defined('SLR_PLUGIN_VERSION_FOR_INSTANCE') ? SLR_PLUGIN_VERSION_FOR_INSTANCE : '1.5.0';
+            // We need to pass the theme manager to the constructor
+            $theme_manager = \SLR_Theme_Manager::get_instance();
             $public_class_instance = new \Sms_Login_Register_Public($plugin_name, $plugin_version);
         }
 

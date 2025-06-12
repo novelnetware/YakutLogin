@@ -41,6 +41,15 @@ class Sms_Login_Register_Public {
     private $version;
 
     /**
+     * The theme manager instance.
+     *
+     * @since    1.5.0
+     * @access   private
+     * @var      SLR_Theme_Manager    $theme_manager
+     */
+    private $theme_manager;
+
+    /**
      * Initialize the class and set its properties.
      *
      * @since    1.0.0
@@ -50,11 +59,53 @@ class Sms_Login_Register_Public {
     public function __construct( $plugin_name, $version ) {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
+        $this->theme_manager = $theme_manager;
     }
 
-    // Removed empty and commented out enqueue_styles() method as maybe_enqueue_scripts() handles CSS.
+    private static $enqueued_themes = []; // Track enqueued themes
 
-    private static $scripts_enqueued = false; // Flag to ensure scripts are enqueued only once
+    /**
+     * Enqueues scripts and styles for a specific theme if not already done.
+     *
+     * @since 1.5.0
+     * @param string $theme_id The ID of the theme to enqueue assets for.
+     */
+    public function enqueue_theme_assets( $theme_id = 'default' ) {
+        if ( isset( self::$enqueued_themes[ $theme_id ] ) ) {
+            return; // Already enqueued
+        }
+
+        $theme = $this->theme_manager->get_theme( $theme_id );
+        if ( ! $theme ) {
+            $theme = $this->theme_manager->get_theme( 'default' );
+            if ( ! $theme ) return; // Bail if even default is missing
+        }
+
+        // Enqueue theme style
+        if ( ! empty( $theme['style'] ) && file_exists( $theme['path'] . $theme['style'] ) ) {
+            wp_enqueue_style(
+                $this->plugin_name . '-theme-' . $theme['id'],
+                $theme['url'] . $theme['style'],
+                array(),
+                $this->version
+            );
+        }
+
+        // Enqueue theme script if it exists
+        if ( ! empty( $theme['script'] ) && file_exists( $theme['path'] . $theme['script'] ) ) {
+            wp_enqueue_script(
+                $this->plugin_name . '-theme-script-' . $theme['id'],
+                $theme['url'] . $theme['script'],
+                array( 'jquery' ),
+                $this->version,
+                true
+            );
+        }
+
+        self::$enqueued_themes[ $theme_id ] = true;
+    }
+
+    
 
     /**
      * Generates the HTML for the OTP login/registration form.
@@ -81,6 +132,10 @@ class Sms_Login_Register_Public {
             ),
         );
         $args = wp_parse_args( $args, $default_args );
+
+        // Enqueue assets for the selected theme
+        $this->enqueue_theme_assets( $args['theme'] );
+
         // Ensure button_texts is an array and merged with defaults
         if (!is_array($args['button_texts'])) {
             $args['button_texts'] = $default_args['button_texts'];
@@ -118,38 +173,33 @@ class Sms_Login_Register_Public {
         <div id="<?php echo esc_attr($args['form_id']); ?>" class="<?php echo esc_attr(implode(' ', $form_classes)); ?>">
             <form class="slr-otp-form" method="post">
                 <?php if ($google_login_enabled) : ?>
-                    <div class="slr-form-row slr-social-login-row slr-google-login-row">
-                        <a href="<?php echo esc_url( $google_login_url ); ?>" class="slr-button slr-google-login-button">
-                            <svg aria-hidden="true" class="slr-google-icon" width="18" height="18" viewBox="0 0 18 18"><path d="M16.51 8.25H9v3.03h4.3c-.38 1.17-.95 2.03-1.88 2.66v2.01h2.6c1.51-1.38 2.38-3.48 2.38-5.88 0-.57-.05-.66-.15-1.14z" fill="#4285F4"></path><path d="M9 16.5c2.44 0 4.47-.8 5.96-2.18l-2.6-2.01c-.8.54-1.84.86-3.36.86-2.58 0-4.76-1.73-5.54-4.06H.96v2.01C2.45 14.49 5.48 16.5 9 16.5z" fill="#34A853"></path><path d="M3.46 10.39c-.19-.54-.3-.94-.3-1.39s.11-.85.3-1.39V5.58H.96c-.66 1.33-1.04 2.79-1.04 4.42s.38 3.09 1.04 4.42l2.5-2.01z" fill="#FBBC05"></path><path d="M9 3.54c1.34 0 2.53.46 3.48 1.38l2.3-2.3C13.46.89 11.43 0 9 0 5.48 0 2.45 2.01.96 5.02l2.5 2.01C4.24 5.27 6.42 3.54 9 3.54z" fill="#EA4335"></path></svg>
-                            <?php echo esc_html( $args['button_texts']['google'] ); ?>
-                        </a>
-                    </div>
-                    <div class="slr-form-row slr-divider-row">
-                        <span class="slr-divider-text"><?php _e('یا', 'yakutlogin'); ?></span>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
                 
-                <?php
-                // Helper function/logic to render a field based on layout
-                $render_field_logic = function($field_type, $field_name, $default_label_text, $default_placeholder_text) use ($args) {
-                    $field_id = 'slr_' . $field_name . '_' . $args['form_id'];
-                    $input_type_attr = ($field_type === 'phone') ? 'tel' : (($field_type === 'otp') ? 'text' : 'email');
-                    
-                    $label_text = $default_label_text; // Can be customized further if needed
-                    $placeholder_text = ($args['show_labels'] && $args['layout'] === 'inline_labels') ? $label_text : $default_placeholder_text;
-                    
-                    echo '<div class="slr-form-row slr-' . esc_attr($field_type) . '-row">';
-                    if ($args['show_labels'] && $args['layout'] !== 'inline_labels') {
-                        echo '<label for="' . esc_attr($field_id) . '">' . esc_html($label_text) . '</label>';
-                    }
-                    echo '<input type="' . esc_attr($input_type_attr) . '" name="slr_' . esc_attr($field_name) . '" id="' . esc_attr($field_id) . '" class="slr-input slr-' . esc_attr($field_name) . '-input" placeholder="' . esc_attr($placeholder_text) . '" ' . ($input_type_attr === 'text' && $field_type === 'otp' ? 'autocomplete="off"' : '') . ' />';
-                    echo '</div>';
-                };
+                <?php // --- Start of Unified Identifier Field --- ?>
+                <div class="slr-form-row slr-identifier-row">
+                    <?php if ($args['show_labels'] && $args['layout'] !== 'inline_labels'): ?>
+                        <label for="slr_identifier_<?php echo esc_attr($args['form_id']); ?>"><?php _e('ایمیل یا شماره تلفن همراه', 'yakutlogin'); ?></label>
+                    <?php endif; ?>
+                    <input type="text" name="slr_identifier" id="slr_identifier_<?php echo esc_attr($args['form_id']); ?>" class="slr-input slr-identifier-input" placeholder="<?php echo esc_attr(__('مثال: 09123456789 یا user@example.com', 'yakutlogin')); ?>" />
+                </div>
+                <?php // --- End of Unified Identifier Field --- ?>
 
-                // Render fields - order can be customized by Elementor controls later if needed
-                $render_field_logic('phone', 'phone', __('تلفن همراه', 'yakutlogin'), __('مثال : 09123456789', 'yakutlogin'));
-                $render_field_logic('email', 'email', __('ایمیل', 'yakutlogin'), __('ایمیل خود را وارد کنید', 'yakutlogin'));
-                ?>
+                <div class="slr-form-row slr-actions-row">
+    <button type="button" class="slr-button slr-send-otp-button">
+        <?php echo esc_html( $args['button_texts']['send_otp'] ); ?>
+    </button>
+    
+    <?php
+    // بررسی می‌کنیم که آیا قابلیت WebAuthn در تنظیمات فعال است یا خیر
+    $options = get_option('slr_plugin_options', []);
+    if (!empty($options['webauthn_enabled'])) :
+    ?>
+    <button type="button" id="slr-webauthn-login-button" class="slr-button slr-webauthn-button" style="display:none; margin-top: 10px;">
+        <i class="fas fa-fingerprint"></i> <?php _e('ورود با اثر انگشت', 'yakutlogin'); ?>
+    </button>
+    <?php endif; ?>
+</div>
+
 
                 <div class="slr-form-row slr-send-otp-row">
                     <button type="button" class="slr-button slr-send-otp-button">
@@ -158,7 +208,7 @@ class Sms_Login_Register_Public {
                 </div>
 
                 <div class="slr-form-row slr-otp-row" style="display: none;">
-                     <?php if ($args['show_labels'] && $args['layout'] !== 'inline_labels'): ?>
+                    <?php if ($args['show_labels'] && $args['layout'] !== 'inline_labels'): ?>
                         <label for="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>"><?php _e('کد یکبار مصرف', 'yakutlogin'); ?></label>
                     <?php endif; ?>
                     <input type="text" name="slr_otp_code" id="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>" class="slr-input slr-otp-input" placeholder="<?php echo esc_attr( ($args['show_labels'] && $args['layout'] === 'inline_labels') ? __('کد یکبار مصرف', 'yakutlogin') : __('کد تایید', 'yakutlogin') ); ?>" autocomplete="off" />
@@ -173,27 +223,46 @@ class Sms_Login_Register_Public {
                 </div>
                 <div class="slr-message-area" style="margin-top:10px;"></div>
                 
-                <?php wp_nonce_field( 'slr_send_otp_nonce', 'slr_send_otp_nonce_field' ); ?>
                 <?php wp_nonce_field( 'slr_process_form_nonce', 'slr_process_form_nonce_field' ); ?>
-                <input type="hidden" name="slr_form_action" value="process_otp_login_register" />
-                <input type="hidden" name="slr_form_context" value="<?php echo esc_attr($args['context']); ?>" />
-                <?php if (!empty($args['redirect_to'])): ?><input type="hidden" name="slr_redirect_to" value="<?php echo esc_url($args['redirect_to']); ?>" /><?php endif; ?>
+                <input type="hidden" name="slr_redirect_to" value="<?php echo esc_url($args['redirect_to']); ?>" />
             </form>
         </div>
         <?php
         return ob_get_clean();
     }
 
-    /**
-     * Enqueues scripts and styles if not already done.
-     * Can be called by shortcodes or widgets when they are rendered.
+     /**
+     * Determines if an input is an email or a phone number.
+     *
+     * @param string $input The user input.
+     * @return array Containing 'type' (email, phone, invalid) and 'value' (sanitized/normalized).
+     */
+    private function determine_identifier_type( $input ) {
+        $sanitized_input = sanitize_text_field( trim( $input ) );
+
+        // Check for email
+        if ( is_email( $sanitized_input ) ) {
+            return [ 'type' => 'email', 'value' => $sanitized_input ];
+        }
+
+        // Check for phone number
+        $gateway_manager = new SLR_Gateway_Manager();
+        $normalized_phone = $gateway_manager->normalize_iranian_phone( $sanitized_input );
+        if ( $normalized_phone ) {
+            return [ 'type' => 'phone', 'value' => $normalized_phone ];
+        }
+
+        return [ 'type' => 'invalid', 'value' => null ];
+    }
+
+     /**
+     * Enqueues base scripts and styles if not already done.
+     * The theme-specific assets are now enqueued by get_otp_form_html.
      *
      * @since 1.0.1
-     * @updated 1.0.4 (Phase 13: Corrected wp_localize_script placement)
      */
     public function maybe_enqueue_scripts() {
         if ( self::$scripts_enqueued ) {
-            $this->enqueue_captcha_scripts_if_needed(); // Still enqueue CAPTCHA if base is done
             return;
         }
 
@@ -397,101 +466,99 @@ class Sms_Login_Register_Public {
         return wp_mail( $email_address, $subject, $body, $headers );
     }
 
-    /**
+     /**
      * AJAX handler for sending OTP.
-     * (No changes from Phase 13 needed for its internal logic, but it uses Captcha_Handler)
+     * (Rewritten for clarity, security, and robustness)
+     *
+     * @since 1.5.1
      */
     public function ajax_send_otp() {
-        // ... (کد قبلی با بررسی کپچا بدون تغییر) ...
+        // ۱. بررسی امنیتی Nonce
         check_ajax_referer( 'slr_send_otp_nonce', 'security' );
 
-        $captcha_handler = null;
-        if (class_exists('SLR_Captcha_Handler')) {
-            $captcha_handler = new SLR_Captcha_Handler();
-        }
+        // ۲. بررسی کپچا (در صورت فعال بودن)
+        $captcha_handler = new SLR_Captcha_Handler();
         $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
-        
-        if ( $captcha_handler && !$captcha_handler->verify_captcha( $captcha_response_token ) ) {
-            wp_send_json_error( array( 'message' => __( 'کپچا تایید نشد . لطفا مجدد تلاش کنید', 'yakutlogin' ) ) );
+        if ( ! $captcha_handler->verify_captcha( $captcha_response_token ) ) {
+            wp_send_json_error( array( 'message' => __( 'تایید کپچا ناموفق بود. لطفا دوباره تلاش کنید.', 'yakutlogin' ) ) );
             return;
         }
 
-        $email = isset( $_POST['email'] ) ? sanitize_email( $_POST['email'] ) : '';
-        $phone = isset( $_POST['phone'] ) ? sanitize_text_field( $_POST['phone'] ) : '';
-        
-        $options = get_option( 'slr_plugin_options' );
-        $gateway_manager = null;
-        if (class_exists('SLR_Gateway_Manager')) {
-            $gateway_manager = new SLR_Gateway_Manager();
-        }
-        $active_sms_provider = $gateway_manager ? $gateway_manager->get_active_gateway_id() : null;
-
-        $identifier = '';
-        $send_method = '';
-
-        if ( !empty($phone) && $active_sms_provider && $gateway_manager ) {
-            $normalized_phone = $gateway_manager->normalize_iranian_phone($phone);
-            if ($normalized_phone) {
-                $identifier = $normalized_phone;
-                $send_method = 'sms';
-            } else {
-                 wp_send_json_error( array( 'message' => __( 'تلفن همراه نامعتبر میباشد', 'yakutlogin' ) ) );
-                 return;
-            }
-        } elseif (!empty($email) && is_email($email) && isset($options['email_otp_enabled']) && $options['email_otp_enabled']) {
-            $identifier = $email;
-            $send_method = 'email';
-        } else {
-            if (empty($phone) && empty($email)) {
-                 wp_send_json_error( array( 'message' => __( 'ایمیل یا شماره موبایل خود را وارد کنید', 'yakutlogin' ) ) );
-            } elseif (!empty($phone) && !$active_sms_provider) {
-                 wp_send_json_error( array( 'message' => __( 'سرویس پیامکی فعال نمیباشد . لطفا با مدیریت تماس بگیرید', 'yakutlogin' ) ) );
-            } elseif (!empty($email) && (!isset($options['email_otp_enabled']) || !$options['email_otp_enabled'])) {
-                 wp_send_json_error( array( 'message' => __( 'ارسال کد تایید با ایمیل غیرفعال میباشد', 'yakutlogin' ) ) );
-            } else {
-                 wp_send_json_error( array( 'message' => __( 'لطفا ایمیل یا تلفن همراه خود را مجددا چک کنید', 'yakutlogin' ) ) );
-            }
+        // ۳. دریافت و اعتبارسنجی ورودی
+        $identifier_input = isset( $_POST['identifier'] ) ? $_POST['identifier'] : '';
+        if ( empty( $identifier_input ) ) {
+            wp_send_json_error( array( 'message' => __( 'لطفا ایمیل یا شماره تلفن همراه خود را وارد کنید.', 'yakutlogin' ) ) );
             return;
         }
 
-        if ( class_exists('Sms_Login_Register_Otp_Handler') && Sms_Login_Register_Otp_Handler::is_on_cooldown( $identifier, 60 ) ) {
-            wp_send_json_error( array( 'message' => __( 'لطفا 60 ثانیه صبر کنید تا بتوانید کد جدید ارسال کنید', 'yakutlogin' ) ) );
+        // ۴. تشخیص نوع ورودی (ایمیل یا تلفن)
+        $identifier_data = $this->determine_identifier_type( $identifier_input );
+        $identifier      = $identifier_data['value'];
+        $send_method     = $identifier_data['type'];
+
+        if ( 'invalid' === $send_method ) {
+            wp_send_json_error( array( 'message' => __( 'فرمت ورودی نامعتبر است. لطفا یک ایمیل یا شماره تلفن صحیح وارد کنید.', 'yakutlogin' ) ) );
             return;
         }
 
-        $otp = class_exists('Sms_Login_Register_Otp_Handler') ? Sms_Login_Register_Otp_Handler::generate_otp() : rand(100000,999999);
-        $stored = class_exists('Sms_Login_Register_Otp_Handler') ? Sms_Login_Register_Otp_Handler::store_otp( $identifier, $otp ) : false;
+        // ۵. بررسی محدودیت زمانی (Cooldown) برای جلوگیری از اسپم
+        if ( Sms_Login_Register_Otp_Handler::is_on_cooldown( $identifier, 60 ) ) {
+            wp_send_json_error( array( 'message' => __( 'شما به تازگی یک کد دریافت کرده‌اید. لطفا ۶۰ ثانیه صبر کنید.', 'yakutlogin' ) ) );
+            return;
+        }
+
+        // ۶. تولید و ذخیره کد OTP
+        $otp    = Sms_Login_Register_Otp_Handler::generate_otp();
+        $stored = Sms_Login_Register_Otp_Handler::store_otp( $identifier, $otp );
 
         if ( ! $stored ) {
-            wp_send_json_error( array( 'message' => __( 'لطفا مجددا تلاش کنید', 'yakutlogin' ) ) );
+            wp_send_json_error( array( 'message' => __( 'خطا در سیستم ذخیره‌سازی کد. لطفا با پشتیبانی تماس بگیرید.', 'yakutlogin' ) ) );
             return;
         }
 
+        // ۷. ارسال کد بر اساس نوع ورودی
         $sent_successfully = false;
-        if ($send_method === 'sms' && $gateway_manager) {
-            $sent_successfully = $gateway_manager->send_otp( $identifier, $otp );
-            $message_on_success = __( 'کد تایید با موفقیت ارسال شد', 'yakutlogin' );
-            $message_on_fail = __( 'امکان ارسال کد تایید وجود ندارد', 'yakutlogin' );
-        } elseif ($send_method === 'email') {
-            $sent_successfully = $this->send_otp_email( $identifier, $otp );
-            $message_on_success = __( 'کد تایید به ایمیل شما ارسال شد', 'yakutlogin' );
-            $message_on_fail = __( 'امکان ارسال کد تایید وجود ندارد', 'yakutlogin' );
+        $message_on_success = '';
+        $message_on_fail = '';
+
+        if ( 'phone' === $send_method ) {
+            $gateway_manager = new SLR_Gateway_Manager();
+            if ( ! $gateway_manager->get_active_gateway() ) {
+                Sms_Login_Register_Otp_Handler::delete_otp( $identifier ); // حذف کد ذخیره شده در صورت خطا
+                wp_send_json_error( array( 'message' => __( 'سرویس پیامک در حال حاضر فعال نیست. لطفا با ایمیل امتحان کنید یا با پشتیبانی تماس بگیرید.', 'yakutlogin' ) ) );
+                return;
+            }
+            $sent_successfully  = $gateway_manager->send_otp( $identifier, $otp );
+            $message_on_success = __( 'کد تایید با موفقیت به شماره شما پیامک شد.', 'yakutlogin' );
+            $message_on_fail    = __( 'در ارسال پیامک خطایی رخ داد. لطفا دوباره تلاش کنید.', 'yakutlogin' );
+        } 
+        elseif ( 'email' === $send_method ) {
+            $options = get_option('slr_plugin_options');
+            if ( !isset($options['email_otp_enabled']) || !$options['email_otp_enabled'] ) {
+                Sms_Login_Register_Otp_Handler::delete_otp( $identifier ); // حذف کد ذخیره شده در صورت خطا
+                wp_send_json_error( array( 'message' => __( 'ارسال کد با ایمیل غیرفعال است. لطفا با شماره تلفن امتحان کنید.', 'yakutlogin' ) ) );
+                return;
+            }
+            $sent_successfully  = $this->send_otp_email( $identifier, $otp );
+            $message_on_success = __( 'کد تایید به ایمیل شما ارسال شد.', 'yakutlogin' );
+            $message_on_fail    = __( 'در ارسال ایمیل خطایی رخ داد. لطفا دوباره تلاش کنید.', 'yakutlogin' );
         }
 
+        // ۸. ارسال پاسخ نهایی به کاربر
         if ( $sent_successfully ) {
             wp_send_json_success( array( 'message' => $message_on_success ) );
         } else {
-            if (class_exists('Sms_Login_Register_Otp_Handler')) Sms_Login_Register_Otp_Handler::delete_otp( $identifier );
+            Sms_Login_Register_Otp_Handler::delete_otp( $identifier ); // حذف کد در صورت شکست در ارسال
             wp_send_json_error( array( 'message' => $message_on_fail ) );
         }
     }
 
     /**
      * Authenticates a user with OTP if provided (for wp-login.php).
-     * (No changes from Phase 13 needed here)
+     * A
      */
     public function authenticate_with_otp( $user, $username, $password ) {
-        // ... (کد قبلی بدون تغییر) ...
+        
         if ( isset( $_POST['slr_otp_code'] ) && ! empty( $_POST['slr_otp_code'] ) && isset( $_POST['slr_action'] ) && $_POST['slr_action'] === 'login_with_otp' ) {
             $submitted_otp = sanitize_text_field( $_POST['slr_otp_code'] );
             
@@ -620,139 +687,120 @@ class Sms_Login_Register_Public {
         return $errors;
     }
 
-    /**
-     * AJAX handler for processing OTP login/registration from generic forms.
-     * (No changes from Phase 13 needed for its internal logic, but it uses Captcha_Handler)
+     /**
+     * AJAX handler for processing OTP login/registration.
+     * (Rewritten for clarity, security, and robustness)
+     *
+     * @since 1.5.1
      */
     public function ajax_process_login_register_otp() {
-        // ... (کد قبلی با بررسی کپچا بدون تغییر) ...
+        // ۱. بررسی امنیتی Nonce
         check_ajax_referer( 'slr_process_form_nonce', 'slr_process_form_nonce_field' );
 
-        $captcha_handler = class_exists('SLR_Captcha_Handler') ? new SLR_Captcha_Handler() : null;
+        // ۲. بررسی کپچا
+        $captcha_handler = new SLR_Captcha_Handler();
         $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
-
-        if ( $captcha_handler && !$captcha_handler->verify_captcha( $captcha_response_token ) ) {
-            wp_send_json_error( array( 'message' => __( 'کپچا تایید نشد.', 'sms-login-register' ) ) );
+        if ( ! $captcha_handler->verify_captcha( $captcha_response_token ) ) {
+            wp_send_json_error( array( 'message' => __( 'تایید کپچا ناموفق بود.', 'yakutlogin' ) ) );
             return;
         }
 
-        $email = isset( $_POST['email'] ) ? sanitize_email( $_POST['email'] ) : '';
-        $phone_input = isset( $_POST['phone'] ) ? sanitize_text_field( $_POST['phone'] ) : '';
-        $otp_code = isset( $_POST['otp_code'] ) ? sanitize_text_field( $_POST['otp_code'] ) : '';
-        $redirect_to_custom = isset($_POST['redirect_to']) ? esc_url_raw($_POST['redirect_to']) : '';
+        // ۳. دریافت و اعتبارسنجی ورودی‌ها
+        $identifier_input = isset( $_POST['identifier'] ) ? $_POST['identifier'] : '';
+        $otp_code         = isset( $_POST['otp_code'] ) ? sanitize_text_field( $_POST['otp_code'] ) : '';
+        $redirect_to      = isset( $_POST['redirect_to'] ) ? esc_url_raw( $_POST['redirect_to'] ) : '';
 
-        $identifier = '';
-        $login_method = '';
-
-        $gateway_manager = class_exists('SLR_Gateway_Manager') ? new SLR_Gateway_Manager() : null;
-
-        if (!empty($phone_input) && $gateway_manager) {
-            $normalized_phone = $gateway_manager->normalize_iranian_phone($phone_input);
-            if ($normalized_phone) {
-                $identifier = $normalized_phone;
-                $login_method = 'phone';
-            }
-        }
-        
-        if (empty($identifier) && !empty($email) && is_email($email)) {
-            $identifier = $email;
-            $login_method = 'email';
-        }
-
-        if ( empty( $identifier ) ) {
-            wp_send_json_error( array( 'message' => __( 'ایمیل یا شماره تلفن معتبر وارد کنید', 'yakutlogin' ) ) );
+        if ( empty( $identifier_input ) || empty( $otp_code ) ) {
+            wp_send_json_error( array( 'message' => __( 'لطفا تمام فیلدها را پر کنید.', 'yakutlogin' ) ) );
             return;
         }
 
-        // The original code had a duplicate check for email emptiness after identifier logic.
-        // The check above for empty($identifier) is sufficient.
-        // if ( empty( $email ) || ! is_email( $email ) ) {
-        //     wp_send_json_error( array( 'message' => __( 'Invalid email address.', 'sms-login-register' ) ) );
-        //     return;
-        // }
+        // ۴. تشخیص نوع ورودی
+        $identifier_data = $this->determine_identifier_type( $identifier_input );
+        $identifier      = $identifier_data['value'];
+        $login_method    = $identifier_data['type'];
 
-        if ( empty( $otp_code ) ) {
-            wp_send_json_error( array( 'message' => __( 'کد تایید نمیتواند خالی بماند', 'yakutlogin' ) ) );
+        if ( 'invalid' === $login_method ) {
+            wp_send_json_error( array( 'message' => __( 'ایمیل یا شماره تلفن نامعتبر است.', 'yakutlogin' ) ) );
             return;
         }
 
-        if ( class_exists('Sms_Login_Register_Otp_Handler') && !Sms_Login_Register_Otp_Handler::verify_otp( $identifier, $otp_code ) ) {
-            wp_send_json_error( array( 'message' => __( 'کد تایید منقضی شده است . مجددا ارسال کنید', 'yakutlogin' ) ) );
+        // ۵. بررسی صحت کد OTP
+        if ( ! Sms_Login_Register_Otp_Handler::verify_otp( $identifier, $otp_code ) ) {
+            wp_send_json_error( array( 'message' => __( 'کد تایید وارد شده اشتباه یا منقضی شده است.', 'yakutlogin' ) ) );
             return;
         }
 
+        // ۶. جستجو برای کاربر موجود
         $user = null;
-        if ($login_method === 'email') {
+        if ( 'email' === $login_method ) {
             $user = get_user_by( 'email', $identifier );
-        } elseif ($login_method === 'phone' && $gateway_manager) {
-            $users = get_users(array(
-                'meta_key' => 'slr_phone_number',
+        } elseif ( 'phone' === $login_method ) {
+            $users = get_users( array(
+                'meta_key'   => 'slr_phone_number',
                 'meta_value' => $identifier,
-                'number' => 1,
-                'count_total' => false
-            ));
-            if (!empty($users)) {
+                'number'     => 1,
+                'count_total'=> false
+            ) );
+            if ( ! empty( $users ) ) {
                 $user = $users[0];
             }
         }
 
+        // ۷. اگر کاربر وجود داشت (ورود)
         if ( $user ) {
             wp_clear_auth_cookie();
             wp_set_current_user( $user->ID );
             wp_set_auth_cookie( $user->ID, true );
-            if (class_exists('Sms_Login_Register_Otp_Handler')) Sms_Login_Register_Otp_Handler::delete_otp( $identifier );
             do_action( 'wp_login', $user->user_login, $user );
 
-
-            $redirect_url = !empty($redirect_to_custom) ? $redirect_to_custom : apply_filters('slr_login_redirect_url_default', admin_url(), $user);
-            wp_send_json_success( array( 
-                'message' => __( 'با موفقیت وارد شدید . درحال انتقال....', 'sms-login-register' ),
-                'redirect_url' => apply_filters('slr_login_redirect_url', $redirect_url, $user)
-            ) );
-        } else {
-            $user_id = 0;
-            if ($login_method === 'email') {
-                $username = sanitize_user( explode( '@', $identifier )[0] . wp_rand(10,999), true );
-                $random_password = wp_generate_password( 12, false );
-                $user_id = wp_create_user( $username, $random_password, $identifier );
-            } elseif ($login_method === 'phone' && $gateway_manager) {
-                $temp_email_for_registration = $email; // Use email if provided alongside phone
-                if (empty($temp_email_for_registration) || !is_email($temp_email_for_registration)) {
-                     $temp_email_for_registration = 'user_' . time() . '@' . wp_parse_url(home_url(), PHP_URL_HOST);
-                }
-                $username = sanitize_user( 'user_' . preg_replace('/[^0-9]/','', $identifier) . wp_rand(10,99), true );
-                $random_password = wp_generate_password( 12, false );
-                $user_id = wp_create_user( $username, $random_password, $temp_email_for_registration );
-                
-                if ( !is_wp_error($user_id) ) {
-                    update_user_meta($user_id, 'slr_phone_number', $identifier);
-                     if ($temp_email_for_registration !== $email && strpos($temp_email_for_registration, '@' . wp_parse_url(home_url(), PHP_URL_HOST)) !== false) {
-                        update_user_meta($user_id, 'slr_requires_email_update', true);
-                    }
-                }
-            } else {
-                 wp_send_json_error( array( 'message' => __( 'امکان ثبت نام بدون ایمیل یا شماره تلفن وجود ندارد', 'yakutlogin' ) ) );
-                 return;
-            }
-
-            if ( is_wp_error( $user_id ) ) {
-                wp_send_json_error( array( 'message' => $user_id->get_error_message() ) );
-                return;
-            }
+            $redirect_url = ! empty( $redirect_to ) ? $redirect_to : apply_filters( 'slr_login_redirect_url_default', admin_url(), $user );
             
-            $new_user = get_user_by('id', $user_id);
-            wp_clear_auth_cookie();
-            wp_set_current_user( $user_id , $new_user->user_login);
-            wp_set_auth_cookie( $user_id, true );
-            if (class_exists('Sms_Login_Register_Otp_Handler')) Sms_Login_Register_Otp_Handler::delete_otp( $identifier ); 
-            do_action( 'wp_login', $new_user->user_login, $new_user );
-            
-            $redirect_url = !empty($redirect_to_custom) ? $redirect_to_custom : apply_filters('slr_registration_redirect_url_default', admin_url(), $new_user);
             wp_send_json_success( array(
-                'message' => __( 'ثبت نام با موفقیت انجام شد . درحال انتقال....', 'yakutlogin' ),
-                'redirect_url' => apply_filters('slr_registration_redirect_url', $redirect_url, $new_user)
+                'message'      => __( 'شما با موفقیت وارد شدید. در حال انتقال...', 'yakutlogin' ),
+                'redirect_url' => apply_filters( 'slr_login_redirect_url', $redirect_url, $user )
             ) );
+            return;
         }
+
+        // ۸. اگر کاربر وجود نداشت (ثبت‌نام)
+        $user_id = 0;
+        $random_password = wp_generate_password( 12, false );
+
+        if ( 'email' === $login_method ) {
+            $username = sanitize_user( explode( '@', $identifier )[0], true );
+            $username = 'user_' . substr(md5($identifier), 0, 8); // ساخت نام کاربری یکتا و غیرقابل حدس
+            $user_id  = wp_create_user( $username, $random_password, $identifier );
+        } 
+        elseif ( 'phone' === $login_method ) {
+            $username     = 'user_' . preg_replace( '/[^0-9]/', '', $identifier );
+            $temp_email   = $username . '@' . wp_parse_url( home_url(), PHP_URL_HOST ); // ایمیل موقت
+            $user_id      = wp_create_user( $username, $random_password, $temp_email );
+            
+            if ( ! is_wp_error( $user_id ) ) {
+                update_user_meta( $user_id, 'slr_phone_number', $identifier );
+                update_user_meta( $user_id, 'slr_requires_email_update', true ); // برای درخواست به‌روزرسانی ایمیل در آینده
+            }
+        }
+
+        if ( is_wp_error( $user_id ) ) {
+            wp_send_json_error( array( 'message' => $user_id->get_error_message() ) );
+            return;
+        }
+
+        // ورود کاربر جدید
+        $new_user = get_user_by( 'id', $user_id );
+        wp_clear_auth_cookie();
+        wp_set_current_user( $user_id, $new_user->user_login );
+        wp_set_auth_cookie( $user_id, true );
+        do_action( 'wp_login', $new_user->user_login, $new_user );
+
+        $redirect_url = ! empty( $redirect_to ) ? $redirect_to : apply_filters( 'slr_registration_redirect_url_default', admin_url(), $new_user );
+        
+        wp_send_json_success( array(
+            'message'      => __( 'ثبت‌نام شما با موفقیت انجام شد. در حال انتقال...', 'yakutlogin' ),
+            'redirect_url' => apply_filters( 'slr_registration_redirect_url', $redirect_url, $new_user )
+        ) );
     }
 
     /**

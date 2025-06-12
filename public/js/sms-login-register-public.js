@@ -1,6 +1,106 @@
 jQuery(document).ready(function($) {
     'use strict';
 
+    // نمایش دکمه ورود بیومتریک در صورت پشتیبانی مرورگر
+    const webAuthnButton = $('#slr-webauthn-login-button');
+    if (window.PublicKeyCredential && webAuthnButton.length) {
+        webAuthnButton.show();
+    }
+
+    // Event listener برای دکمه ورود بیومتریک
+    $('body').on('click', '#slr-webauthn-login-button', async function(e) {
+        e.preventDefault();
+        const $button = $(this);
+        const $formContainer = $button.closest('.slr-otp-form-container');
+        const $identifierField = $formContainer.find('.slr-identifier-input');
+        const $messageDiv = $formContainer.find('.slr-message-area');
+        const identifier = $identifierField.val();
+
+        if (!identifier) {
+            $messageDiv.text('برای ورود با اثر انگشت، ابتدا ایمیل یا شماره تلفن خود را وارد کنید.').removeClass('slr-success').addClass('slr-error');
+            return;
+        }
+
+        $button.html('<i class="fas fa-spinner fa-spin"></i> در حال پردازش...').prop('disabled', true);
+        $messageDiv.text('لطفا هویت خود را با دستگاه تایید کنید...').removeClass('slr-error slr-success').addClass('slr-info');
+
+        try {
+            // ۱. دریافت گزینه‌های ورود از سرور
+            const requestOptionsResponse = await $.post(slr_public_data.ajax_url, {
+                action: 'yakutlogin_get_authentication_options',
+                nonce: slr_public_data.send_otp_nonce, // استفاده از نانس موجود
+                identifier: identifier
+            });
+
+            if (!requestOptionsResponse.success) throw new Error(requestOptionsResponse.data.message);
+
+            // ۲. آماده‌سازی گزینه‌ها و فراخوانی API مرورگر
+            const credentialOptions = prepareOptionsForBrowser(requestOptionsResponse.data);
+            const assertion = await navigator.credentials.get({ publicKey: credentialOptions });
+
+            // ۳. ارسال نتیجه به سرور برای تایید نهایی
+            const verificationResponse = await fetch(slr_public_data.ajax_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...prepareCredentialForServer(assertion),
+                    action: 'yakutlogin_verify_authentication',
+                    nonce: slr_public_data.send_otp_nonce,
+                    identifier: identifier
+                })
+            });
+            const verificationResult = await verificationResponse.json();
+            
+            if (verificationResult.success && verificationResult.data.redirect_url) {
+                $messageDiv.text(verificationResult.data.message).removeClass('slr-error').addClass('slr-success');
+                window.location.href = verificationResult.data.redirect_url;
+            } else {
+                throw new Error(verificationResult.data.message);
+            }
+
+        } catch (err) {
+            console.error("WebAuthn Login Error:", err);
+            $messageDiv.text(err.message || 'ورود با خطا مواجه شد.').removeClass('slr-success').addClass('slr-error');
+        } finally {
+            $button.html('<i class="fas fa-fingerprint"></i> ورود با اثر انگشت').prop('disabled', false);
+        }
+    });
+
+    // --- WebAuthn Helper Functions ---
+
+function bufferDecode(value) {
+    return Uint8Array.from(atob(value.replace(/_/g, '/').replace(/-/g, '+')), c => c.charCodeAt(0));
+}
+
+function bufferEncode(value) {
+    return btoa(String.fromCharCode.apply(null, new Uint8Array(value)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function prepareOptionsForBrowser(options) {
+    options.challenge = bufferDecode(options.challenge);
+    options.user.id = bufferDecode(options.user.id);
+    if (options.excludeCredentials) {
+        options.excludeCredentials.forEach(cred => {
+            cred.id = bufferDecode(cred.id);
+        });
+    }
+    return options;
+}
+
+function prepareCredentialForServer(credential) {
+    return {
+        id: credential.id,
+        rawId: bufferEncode(credential.rawId),
+        type: credential.type,
+        response: {
+            attestationObject: bufferEncode(credential.response.attestationObject),
+            clientDataJSON: bufferEncode(credential.response.clientDataJSON),
+        },
+    };
+}
+
+
     // Helper function to validate email
     function isValidEmail(email) {
         var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -10,34 +110,22 @@ jQuery(document).ready(function($) {
     // --- Send OTP Handler ---
     // For generic OTP forms (shortcode, widget) and wp-login.php forms
     // Uses data-attributes on the button if available, otherwise specific IDs.
-    $('body').on('click', '.slr-send-otp-button, .slr-send-otp-button-generic', function(e) {
+    // --- Send OTP Handler ---
+    $('body').on('click', '.slr-send-otp-button', function(e) {
         e.preventDefault();
         var $button = $(this);
-        var $formContainer = $button.closest('.slr-otp-form-container, .slr-otp-wp-login-section, .slr-otp-wp-register-section');
-        var $phoneField = $formContainer.find('.slr-phone-input').first();
-        var phone = $phoneField.length ? $phoneField.val() : '';
+        var $formContainer = $button.closest('.slr-otp-form-container');
         
-        var emailFieldSelector = $button.data('email-field') || $formContainer.find('.slr-email-input').first();
-        var $emailField = $(emailFieldSelector);
-        if ($emailField.length === 0 && $formContainer.find('.slr-email-input').length > 0) {
-             $emailField = $formContainer.find('.slr-email-input').first(); // fallback for generic form
-        } else if ($emailField.length === 0 && $button.attr('id') === 'slr-send-otp-button-login-wp') {
-            $emailField = $('#user_login'); // wp-login specific
-        } else if ($emailField.length === 0 && $button.attr('id') === 'slr-send-otp-button-register-wp') {
-            $emailField = $('#user_email'); // wp-register specific
-        }
+        // Find the new unified identifier field
+        var $identifierField = $formContainer.find('.slr-identifier-input').first();
+        var identifier = $identifierField.val();
 
-
-        var $messageDiv = $button.data('message-target') ? $($button.data('message-target')) : $formContainer.find('.slr-message-area').first();
-        // var nonce = $formContainer.find('input[name="slr_send_otp_nonce_field"]').val() || slr_public_data.send_otp_nonce;
-        // The nonce for send_otp is globally available via slr_public_data.send_otp_nonce
-
-        var email = $emailField.val();
-
+        var $messageDiv = $formContainer.find('.slr-message-area').first();
+        
         $messageDiv.text(slr_public_data.text_sending_otp).removeClass('slr-error slr-success').addClass('slr-info');
 
-        if (!email || !isValidEmail(email)) {
-            $messageDiv.text(slr_public_data.text_invalid_email).addClass('slr-error');
+        if (!identifier) {
+            $messageDiv.text('لطفا ایمیل یا شماره تلفن خود را وارد کنید.').addClass('slr-error');
             return;
         }
 
@@ -48,16 +136,16 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'slr_send_otp',
-                email: email,
-                phone: phone,
+                identifier: identifier, // Send the single identifier
                 security: slr_public_data.send_otp_nonce
+                // Include captcha response if present
             },
             success: function(response) {
                 if (response.success) {
-                    $messageDiv.text(response.data.message || slr_public_data.text_otp_sent).addClass('slr-success');
-                    $formContainer.find('.slr-otp-row, .slr-submit-row').slideDown(); // Show OTP and submit fields
+                    $messageDiv.text(response.data.message).addClass('slr-success');
+                    $formContainer.find('.slr-otp-row, .slr-submit-row').slideDown();
                 } else {
-                    $messageDiv.text(response.data.message || slr_public_data.text_error_sending_otp).addClass('slr-error');
+                    $messageDiv.text(response.data.message).addClass('slr-error');
                 }
             },
             error: function() {
@@ -69,14 +157,14 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // --- Process Login/Register Form Submission Handler (for generic forms) ---
+    // --- Process Login/Register Form Submission Handler ---
     $('body').on('submit', 'form.slr-otp-form', function(e) {
         e.preventDefault();
         var $form = $(this);
         var $messageDiv = $form.find('.slr-message-area');
         var $submitButton = $form.find('.slr-submit-button');
 
-        var email = $form.find('.slr-email-input').val();
+        var identifier = $form.find('.slr-identifier-input').val(); // Get identifier from the form
         var otp = $form.find('.slr-otp-input').val();
         var processNonce = $form.find('input[name="slr_process_form_nonce_field"]').val();
         var redirectTo = $form.find('input[name="slr_redirect_to"]').val() || '';
@@ -96,7 +184,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'slr_process_login_register_otp',
-                email: email,
+                identifier: identifier,
                 otp_code: otp,
                 slr_process_form_nonce_field: processNonce, // Nonce for this specific action
                 redirect_to: redirectTo,

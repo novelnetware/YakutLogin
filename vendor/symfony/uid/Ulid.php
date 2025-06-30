@@ -11,8 +11,6 @@
 
 namespace Symfony\Component\Uid;
 
-use Symfony\Component\Uid\Exception\InvalidArgumentException;
-
 /**
  * A ULID is lexicographically sortable and contains a 48-bit timestamp and 80-bit of crypto-random entropy.
  *
@@ -38,7 +36,7 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
             $this->uid = $ulid;
         } else {
             if (!self::isValid($ulid)) {
-                throw new InvalidArgumentException(\sprintf('Invalid ULID: "%s".', $ulid));
+                throw new \InvalidArgumentException(sprintf('Invalid ULID: "%s".', $ulid));
             }
 
             $this->uid = strtoupper($ulid);
@@ -61,7 +59,7 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
     public static function fromString(string $ulid): static
     {
         if (36 === \strlen($ulid) && preg_match('{^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$}Di', $ulid)) {
-            $ulid = hex2bin(str_replace('-', '', $ulid));
+            $ulid = uuid_parse($ulid);
         } elseif (22 === \strlen($ulid) && 22 === strspn($ulid, BinaryUtil::BASE58[''])) {
             $ulid = str_pad(BinaryUtil::fromBase($ulid, BinaryUtil::BASE58), 16, "\0", \STR_PAD_LEFT);
         }
@@ -75,7 +73,7 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
         }
 
         $ulid = bin2hex($ulid);
-        $ulid = \sprintf('%02s%04s%04s%04s%04s%04s%04s',
+        $ulid = sprintf('%02s%04s%04s%04s%04s%04s%04s',
             base_convert(substr($ulid, 0, 2), 16, 32),
             base_convert(substr($ulid, 2, 5), 16, 32),
             base_convert(substr($ulid, 7, 5), 16, 32),
@@ -103,7 +101,7 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
     {
         $ulid = strtr($this->uid, 'ABCDEFGHJKMNPQRSTVWXYZ', 'abcdefghijklmnopqrstuv');
 
-        $ulid = \sprintf('%02s%05s%05s%05s%05s%05s%05s',
+        $ulid = sprintf('%02s%05s%05s%05s%05s%05s%05s',
             base_convert(substr($ulid, 0, 2), 32, 16),
             base_convert(substr($ulid, 2, 4), 32, 16),
             base_convert(substr($ulid, 6, 4), 32, 16),
@@ -135,7 +133,7 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
         if (\PHP_INT_SIZE >= 8) {
             $time = (string) hexdec(base_convert($time, 32, 16));
         } else {
-            $time = \sprintf('%02s%05s%05s',
+            $time = sprintf('%02s%05s%05s',
                 base_convert(substr($time, 0, 2), 32, 16),
                 base_convert(substr($time, 2, 4), 32, 16),
                 base_convert(substr($time, 6, 4), 32, 16)
@@ -156,7 +154,7 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
             $time = microtime(false);
             $time = substr($time, 11).substr($time, 2, 3);
         } elseif (0 > $time = $time->format('Uv')) {
-            throw new InvalidArgumentException('The timestamp must be positive.');
+            throw new \InvalidArgumentException('The timestamp must be positive.');
         }
 
         if ($time > self::$time || (null !== $mtime && $time !== self::$time)) {
@@ -192,14 +190,14 @@ class Ulid extends AbstractUid implements TimeBasedUidInterface
             $time = base_convert($time, 10, 32);
         } else {
             $time = str_pad(bin2hex(BinaryUtil::fromBase($time, BinaryUtil::BASE10)), 12, '0', \STR_PAD_LEFT);
-            $time = \sprintf('%s%04s%04s',
+            $time = sprintf('%s%04s%04s',
                 base_convert(substr($time, 0, 2), 16, 32),
                 base_convert(substr($time, 2, 5), 16, 32),
                 base_convert(substr($time, 7, 5), 16, 32)
             );
         }
 
-        return strtr(\sprintf('%010s%04s%04s%04s%04s',
+        return strtr(sprintf('%010s%04s%04s%04s%04s',
             $time,
             base_convert(self::$rand[1], 10, 32),
             base_convert(self::$rand[2], 10, 32),

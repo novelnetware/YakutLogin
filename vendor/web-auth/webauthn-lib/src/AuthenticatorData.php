@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Webauthn;
 
-use Webauthn\AuthenticationExtensions\AuthenticationExtensions;
+use Webauthn\AuthenticationExtensions\AuthenticationExtensionsClientOutputs;
 use function ord;
 
 /**
+ * @final
  * @see https://www.w3.org/TR/webauthn/#sec-authenticator-data
  * @see https://www.w3.org/TR/webauthn/#flags
  */
@@ -37,20 +38,25 @@ class AuthenticatorData
         public readonly string $rpIdHash,
         public readonly string $flags,
         public readonly int $signCount,
-        public readonly null|AttestedCredentialData $attestedCredentialData,
-        public readonly null|AuthenticationExtensions $extensions
+        public readonly ?AttestedCredentialData $attestedCredentialData,
+        public readonly ?AuthenticationExtensionsClientOutputs $extensions
     ) {
     }
 
-    public static function create(
-        string $authData,
-        string $rpIdHash,
-        string $flags,
-        int $signCount,
-        null|AttestedCredentialData $attestedCredentialData = null,
-        null|AuthenticationExtensions $extensions = null
-    ): self {
-        return new self($authData, $rpIdHash, $flags, $signCount, $attestedCredentialData, $extensions);
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getAuthData(): string
+    {
+        return $this->authData;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getRpIdHash(): string
+    {
+        return $this->rpIdHash;
     }
 
     public function isUserPresent(): bool
@@ -91,5 +97,29 @@ class AuthenticatorData
     public function getReservedForFutureUse2(): int
     {
         return ord($this->flags) & self::FLAG_RFU2;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getSignCount(): int
+    {
+        return $this->signCount;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getAttestedCredentialData(): ?AttestedCredentialData
+    {
+        return $this->attestedCredentialData;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getExtensions(): ?AuthenticationExtensionsClientOutputs
+    {
+        return $this->extensions !== null && $this->hasExtensions() ? $this->extensions : null;
     }
 }

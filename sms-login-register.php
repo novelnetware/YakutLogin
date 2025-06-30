@@ -21,6 +21,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Define constants
  */
 define( 'SLR_PLUGIN_VERSION', '1.9.1' ); // SLR for SMS Login Register
+require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 define( 'SLR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SLR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -28,12 +29,7 @@ define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'SLR_PLUGIN_NAME_FOR_INSTANCE', 'sms-login-register' );
 define( 'SLR_PLUGIN_VERSION_FOR_INSTANCE', SLR_PLUGIN_VERSION );
 
-/**
- * Load Composer's autoloader.
- */
-if ( file_exists( SLR_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
-    require_once SLR_PLUGIN_DIR . 'vendor/autoload.php';
-}
+
 
 /**
  * The core plugin class that is used to define internationalization,

@@ -1,161 +1,147 @@
 <?php
+/**
+ * Handles WebAuthn authentication logic for webauthn-lib v4.x.
+ *
+ * @package Sms_Login_Register/Includes/Core
+ * @since   1.0.0
+ */
 
-use Webauthn\PublicKeyCredentialCreationOptions;
-use Webauthn\PublicKeyCredentialRequestOptions;
-use Webauthn\PublicKeyCredentialSourceRepository;
-use Webauthn\PublicKeyCredentialSource;
-use Webauthn\PublicKeyCredentialUserEntity;
-use Webauthn\PublicKeyCredentialParameters;
-use Webauthn\PublicKeyCredentialDescriptor;
-use Webauthn\RelyingParty;
-use Webauthn\Server;
-use Webauthn\PublicKeyCredentialLoader;
-
+// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly.
+	exit;
 }
 
+// Import the necessary classes and interfaces from the library using the 'use' keyword.
+use Webauthn\PublicKeyCredentialSource;
+use Webauthn\PublicKeyCredentialSourceRepository;
+use Webauthn\PublicKeyCredentialUserEntity;
+use Webauthn\Base64Url;
+
 /**
- * Handles all WebAuthn related logic (registration and authentication).
+ * Class SLR_WebAuthn_Handler.
+ *
+ * This class now correctly implements the namespaced interface.
  */
 class SLR_WebAuthn_Handler implements PublicKeyCredentialSourceRepository {
 
-    private $server;
+	/**
+	 * Finds a credential source by its ID.
+	 *
+	 * @param string $publicKeyCredentialId The credential ID (as binary).
+	 *
+	 * @return PublicKeyCredentialSource|null
+	 */
+	public function findOneByCredentialId( string $publicKeyCredentialId ): ?PublicKeyCredentialSource {
+		// The library provides the ID as a binary string.
+		// We need to base64url_encode it to match how we might have stored it.
+		$credential_id_base64 = Base64Url::encode( $publicKeyCredentialId );
+		$all_users_credentials = get_users( [
+			'meta_key'   => '_slr_webauthn_credentials_id',
+			'meta_value' => $credential_id_base64,
+			'number'     => 1,
+			'fields'     => 'ID',
+		] );
 
-    public function __construct() {
-        // ۱. تعریف اطلاعات وبسایت (Relying Party)
-        $rpEntity = new RelyingParty(
-            get_bloginfo('name'), // نام وبسایت شما
-            wp_parse_url(get_site_url(), PHP_URL_HOST), // دامنه اصلی سایت
-            get_site_url() . '/?slr-webauthn-icon=1' // آدرس آیکون (اختیاری)
-        );
+		if ( empty( $all_users_credentials ) ) {
+			return null;
+		}
 
-        // ۲. مقداردهی سرور WebAuthn با اطلاعات سایت و این کلاس به عنوان منبع داده
-        $this->server = new Server(
-            $rpEntity,
-            $this, // این کلاس وظیفه ارتباط با دیتابیس را بر عهده دارد
-            ['sha256'] // الگوریتم‌های پشتیبانی شده
-        );
-    }
-    
-    /**
-     * AJAX handler to generate authentication options.
-     */
-    public function ajax_get_authentication_options() {
-        check_ajax_referer('yakutlogin_admin_nonce', 'nonce'); // از همان نانس ادمین برای سادگی استفاده می‌کنیم
-        
-        $identifier_input = isset($_POST['identifier']) ? sanitize_text_field($_POST['identifier']) : '';
-        if (empty($identifier_input)) {
-            wp_send_json_error(['message' => 'لطفا شناسه کاربری (ایمیل/تلفن) را وارد کنید.']);
-        }
-        
-        // پیدا کردن کاربر بر اساس شناسه
-        $user = is_email($identifier_input) ? get_user_by('email', $identifier_input) : null;
-        if (!$user) {
-            // منطق پیدا کردن کاربر با شماره تلفن را اینجا اضافه کنید اگر لازم است
-            wp_send_json_error(['message' => 'کاربری با این شناسه یافت نشد.']);
-        }
-        
-        $userEntity = new PublicKeyCredentialUserEntity($user->user_email, (string) $user->ID, $user->display_name);
-        $allowedCredentials = $this->findAllForUserEntity($userEntity);
-        
-        if (empty($allowedCredentials)) {
-            wp_send_json_error(['message' => 'هیچ دستگاهی برای این کاربر ثبت نشده است.']);
-        }
+		$user_id = $all_users_credentials[0];
+		// In this version, the repository method is `findAllForUserEntity`, not `findAllForUserHandle`.
+		$user_entity = $this->findUserEntityById( $user_id );
+		if ( $user_entity === null ) {
+			return null;
+		}
 
-        $requestOptions = $this->server->generatePublicKeyCredentialRequestOptions(
-            PublicKeyCredentialRequestOptions::USER_VERIFICATION_REQUIREMENT_PREFERRED,
-            $allowedCredentials
-        );
+		$all_sources = $this->findAllForUserEntity( $user_entity );
 
-        set_transient('webauthn_request_options_' . $user->ID, $requestOptions, 5 * MINUTE_IN_SECONDS);
+		foreach ( $all_sources as $source ) {
+			if ( $source->getPublicKeyCredentialId() === $credential_id_base64 ) {
+				return $source;
+			}
+		}
 
-        wp_send_json_success($requestOptions);
-    }
+		return null;
+	}
 
-   /**
-     * AJAX handler to verify the authentication data.
-     */
-    public function ajax_verify_authentication() {
-        check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
-        
-        try {
-            $identifier_input = isset($_POST['identifier']) ? sanitize_text_field($_POST['identifier']) : '';
-            $user = is_email($identifier_input) ? get_user_by('email', $identifier_input) : null;
-            
-            if (!$user) {
-                wp_send_json_error(['message' => 'کاربر یافت نشد.']);
-            }
 
-            $publicKeyCredentialSource = $this->server->loadAndCheckAssertionResponse(
-                file_get_contents('php://input'),
-                get_transient('webauthn_request_options_' . $user->ID)
-            );
-            
-            // به‌روزرسانی شمارنده امضا برای جلوگیری از حملات تکرار
-            $this->saveCredentialSource($publicKeyCredentialSource);
-            
-            delete_transient('webauthn_request_options_' . $user->ID);
+	/**
+	 * Finds all credential sources for a given user entity.
+	 *
+	 * @param PublicKeyCredentialUserEntity $publicKeyCredentialUserEntity The user entity.
+	 *
+	 * @return PublicKeyCredentialSource[]
+	 */
+	public function findAllForUserEntity( PublicKeyCredentialUserEntity $publicKeyCredentialUserEntity ): array {
+		$user_id      = $publicKeyCredentialUserEntity->getId();
+		$sources_data = get_user_meta( $user_id, '_slr_webauthn_credentials', true );
 
-            // ورود کاربر به وردپرس
-            wp_clear_auth_cookie();
-            wp_set_current_user($user->ID);
-            wp_set_auth_cookie($user->ID, true);
-            do_action('wp_login', $user->user_login, $user);
+		if ( empty( $sources_data ) || ! is_array( $sources_data ) ) {
+			return [];
+		}
 
-            $redirect_url = apply_filters('slr_login_redirect_url_default', admin_url(), $user);
-            
-            wp_send_json_success([
-                'message' => 'ورود موفقیت‌آمیز بود!',
-                'redirect_url' => $redirect_url
-            ]);
+		$sources = [];
+		foreach ( $sources_data as $source_json ) {
+			try {
+				$sources[] = PublicKeyCredentialSource::createFromArray( json_decode( $source_json, true ) );
+			} catch ( \Exception $e ) {
+				// Log or handle error if deserialization fails.
+				continue;
+			}
+		}
+		return $sources;
+	}
 
-        } catch (Throwable $e) {
-            wp_send_json_error(['message' => 'خطا در احراز هویت: ' . $e->getMessage()]);
-        }
-    }
 
-    /* =========================================================================
-     * متدهای مربوط به اینترفیس PublicKeyCredentialSourceRepository
-     * این متدها وظیفه ارتباط با دیتابیس سفارشی ما را دارند.
-     * ========================================================================= */
+	/**
+	 * Saves a credential source.
+	 *
+	 * @param PublicKeyCredentialSource $publicKeyCredentialSource The credential source to save.
+	 */
+	public function saveCredentialSource( PublicKeyCredentialSource $publicKeyCredentialSource ): void {
+		$user_id      = $publicKeyCredentialSource->getUserHandle();
+		$sources_data = get_user_meta( $user_id, '_slr_webauthn_credentials', true );
+		if ( ! is_array( $sources_data ) ) {
+			$sources_data = [];
+		}
 
-    public function findOneByCredentialId(string $publicKeyCredentialId): ?PublicKeyCredentialSource {
-        global $wpdb;
-        $table = $wpdb->prefix . 'slr_webauthn_credentials';
-        $data = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE credential_id = %s", base64_encode($publicKeyCredentialId)), ARRAY_A);
+		// Remove old entry if it exists, and add the new one.
+		$found = false;
+		foreach ( $sources_data as $key => $source_json ) {
+			$data = json_decode( $source_json, true );
+			if ( $data['publicKeyCredentialId'] === $publicKeyCredentialSource->getPublicKeyCredentialId() ) {
+				$sources_data[ $key ] = json_encode( $publicKeyCredentialSource );
+				$found = true;
+				break;
+			}
+		}
 
-        if (!$data) {
-            return null;
-        }
+		if ( ! $found ) {
+			$sources_data[] = json_encode( $publicKeyCredentialSource );
+		}
 
-        return PublicKeyCredentialSource::createFromArray($data);
-    }
+		update_user_meta( $user_id, '_slr_webauthn_credentials', $sources_data );
 
-    public function findAllForUserEntity(PublicKeyCredentialUserEntity $publicKeyCredentialUserEntity): array {
-        global $wpdb;
-        $table = $wpdb->prefix . 'slr_webauthn_credentials';
-        $results = [];
-        $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE user_id = %d", $publicKeyCredentialUserEntity->getId()), ARRAY_A);
+		// Also save the credential ID separately for faster lookups.
+		add_user_meta( $user_id, '_slr_webauthn_credentials_id', $publicKeyCredentialSource->getPublicKeyCredentialId(), false );
+	}
 
-        foreach ($rows as $row) {
-            $results[] = PublicKeyCredentialSource::createFromArray($row);
-        }
-
-        return $results;
-    }
-
-    public function saveCredentialSource(PublicKeyCredentialSource $publicKeyCredentialSource): void {
-        global $wpdb;
-        $table = $wpdb->prefix . 'slr_webauthn_credentials';
-        
-        $data = $publicKeyCredentialSource->jsonSerialize();
-
-        $wpdb->insert($table, [
-            'user_id'            => $data['userHandle'],
-            'credential_id'      => $data['publicKeyCredentialId'],
-            'public_key'         => $data['credentialPublicKey'],
-            'signature_counter'  => $data['counter'],
-        ]);
-    }
+	/**
+	 * Helper function to get a user entity by ID.
+	 *
+	 * @param string $user_id The user ID.
+	 * @return PublicKeyCredentialUserEntity|null
+	 */
+	private function findUserEntityById( string $user_id ): ?PublicKeyCredentialUserEntity {
+		$user = get_user_by( 'ID', $user_id );
+		if ( ! $user ) {
+			return null;
+		}
+		return new PublicKeyCredentialUserEntity(
+			$user->user_login,
+			$user->ID,
+			$user->display_name,
+			null // icon property does not exist in v4
+		);
+	}
 }

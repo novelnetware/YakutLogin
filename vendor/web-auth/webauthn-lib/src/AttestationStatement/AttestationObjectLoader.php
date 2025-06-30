@@ -12,10 +12,10 @@ use Psr\Log\NullLogger;
 use Throwable;
 use Webauthn\AuthenticatorDataLoader;
 use Webauthn\Event\AttestationObjectLoaded;
-use Webauthn\Event\CanDispatchEvents;
-use Webauthn\Event\NullEventDispatcher;
 use Webauthn\Exception\InvalidDataException;
 use Webauthn\MetadataService\CanLogData;
+use Webauthn\MetadataService\Event\CanDispatchEvents;
+use Webauthn\MetadataService\Event\NullEventDispatcher;
 use Webauthn\StringStream;
 use Webauthn\Util\Base64;
 use function array_key_exists;
@@ -92,7 +92,7 @@ class AttestationObjectLoader implements CanDispatchEvents, CanLogData
             $authDataLoader = AuthenticatorDataLoader::create();
             $authenticatorData = $authDataLoader->load($authData);
 
-            $attestationObject = AttestationObject::create($data, $attestationStatement, $authenticatorData);
+            $attestationObject = new AttestationObject($data, $attestationStatement, $authenticatorData);
             $this->logger->info('Attestation Object loaded');
             $this->logger->debug('Attestation Object', [
                 'ed' => $attestationObject,

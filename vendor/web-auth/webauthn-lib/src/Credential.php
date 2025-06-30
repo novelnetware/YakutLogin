@@ -10,8 +10,24 @@ namespace Webauthn;
 abstract class Credential
 {
     public function __construct(
-        public readonly string $type,
-        public readonly string $rawId,
+        public readonly string $id,
+        public readonly string $type
     ) {
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getType(): string
+    {
+        return $this->type;
     }
 }

@@ -14,10 +14,12 @@ class Sms_Login_Register_Admin {
     private $plugin_name;
     private $version;
     private $gateway_manager;
+    private $webauthn_handler;
 
-    public function __construct( $plugin_name, $version ) {
+    public function __construct( $plugin_name, $version , $webauthn_handler ) {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
+        $this->webauthn_handler = $webauthn_handler;
         if (class_exists('SLR_Gateway_Manager')) {
             $this->gateway_manager = new SLR_Gateway_Manager();
         } else {
@@ -414,6 +416,111 @@ public function enqueue_scripts( $hook ) {
        
         if (!empty($args['desc'])) {
             echo '<p class="description">' . esc_html($args['desc']) . '</p>';
+        }
+    }
+    /**
+     * AJAX handler to get WebAuthn registration options from the server.
+     * This creates the challenge that the browser will sign.
+     */
+    public function ajax_get_registration_options() {
+        // First, check for security nonce.
+        check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
+
+        // Ensure the WebAuthn handler is available.
+        if (!isset($this->webauthn_handler)) {
+            wp_send_json_error(['message' => 'WebAuthn handler not available.']);
+            return;
+        }
+
+        $user = wp_get_current_user();
+        if (!$user || $user->ID === 0) {
+            wp_send_json_error(['message' => 'User not logged in.']);
+            return;
+        }
+
+        // Required entities for the WebAuthn library.
+        $user_entity = new Webauthn\PublicKeyCredentialUserEntity(
+            $user->user_login,
+            (string) $user->ID,
+            $user->display_name
+        );
+
+        $rp_entity = new Webauthn\PublicKeyCredentialRpEntity(
+            get_bloginfo('name'),
+            wp_parse_url(home_url(), PHP_URL_HOST)
+        );
+
+        // Generate a random challenge.
+        try {
+            $challenge = random_bytes(32);
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => 'Could not generate a secure challenge.']);
+            return;
+        }
+
+        // Create the options object.
+        $creation_options = new Webauthn\PublicKeyCredentialCreationOptions(
+            $rp_entity,
+            $user_entity,
+            $challenge,
+            [] // You can add parameters here if needed in the future
+        );
+
+        // Store the options in a temporary transient to verify against them in the next step.
+        set_transient('webauthn_creation_options_for_user_' . $user->ID, $creation_options, MINUTE_IN_SECONDS * 5);
+
+        // Send the options back to the JavaScript frontend.
+        wp_send_json_success($creation_options);
+    }
+    /**
+     * AJAX handler to verify and save the WebAuthn credential from the browser.
+     */
+    public function ajax_verify_registration() {
+        // We don't need a nonce check here because the verification process
+        // relies on the challenge stored in the transient, which is secure.
+        
+        if (!isset($this->webauthn_handler)) {
+            wp_send_json_error(['message' => 'WebAuthn handler not available.']);
+            return;
+        }
+
+        $user = wp_get_current_user();
+        if (!$user || $user->ID === 0) {
+            wp_send_json_error(['message' => 'User not logged in.']);
+            return;
+        }
+
+        try {
+            // Retrieve the creation options we stored temporarily.
+            $creation_options = get_transient('webauthn_creation_options_for_user_' . $user->ID);
+            if ($creation_options === false) {
+                throw new Exception('Challenge timed out or not found. Please try again.');
+            }
+
+            // Get the data sent from the browser.
+            $credential_data = file_get_contents('php://input');
+            if ($credential_data === false) {
+                throw new Exception('Could not read request body.');
+            }
+
+            // The WebAuthn library handles the complex verification process.
+            $publicKeyCredentialSource = Webauthn\AuthenticatorAttestationResponseValidator::check(
+                Webauthn\AuthenticatorAttestationResponse::createFromJSON($credential_data),
+                $creation_options,
+                (new Webauthn\CeremonyStep\HostTopOriginValidator(get_home_url()))
+            );
+
+            // If verification is successful, save the new credential source.
+            $this->webauthn_handler->saveCredentialSource($publicKeyCredentialSource);
+
+            // Clean up the transient.
+            delete_transient('webauthn_creation_options_for_user_' . $user->ID);
+
+            wp_send_json_success(['message' => 'دستگاه شما با موفقیت ثبت شد!']);
+
+        } catch (Throwable $e) {
+            // If anything goes wrong, send back a detailed error message.
+            wp_send_json_error(['message' => 'Verification failed: ' . $e->getMessage()]);
         }
     }
 }

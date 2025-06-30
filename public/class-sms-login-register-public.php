@@ -22,44 +22,49 @@
  */
 class Sms_Login_Register_Public {
 
-    /**
+ /**
      * The ID of this plugin.
-     *
-     * @since    1.0.0
-     * @access   private
-     * @var      string    $plugin_name    The ID of this plugin.
+     * @var string
      */
     private $plugin_name;
 
     /**
      * The version of this plugin.
-     *
-     * @since    1.0.0
-     * @access   private
-     * @var      string    $version    The current version of this plugin.
+     * @var string
      */
     private $version;
 
     /**
      * The theme manager instance.
-     *
-     * @since    1.5.0
-     * @access   private
-     * @var      SLR_Theme_Manager    $theme_manager
+     * @var SLR_Theme_Manager
      */
     private $theme_manager;
 
     /**
+     * Ensures scripts are only enqueued once.
+     * @var bool
+     */
+    private static $scripts_enqueued = false;
+
+    /**
      * Initialize the class and set its properties.
      *
-     * @since    1.0.0
-     * @param    string    $plugin_name       The name of the plugin.
-     * @param    string    $version    The version of this plugin.
+     * @param string             $plugin_name The name of this plugin.
+     * @param string             $version     The version of this plugin.
+     * @param SLR_Theme_Manager  $theme_manager The theme manager instance.
      */
-    public function __construct( $plugin_name, $version ) {
+    public function __construct($plugin_name, $version, $theme_manager) {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
         $this->theme_manager = $theme_manager;
+
+        // Instantiate handlers once to be reused
+        if (class_exists('SLR_Gateway_Manager')) {
+            $this->gateway_manager = new SLR_Gateway_Manager();
+        }
+        if (class_exists('SLR_Captcha_Handler')) {
+            $this->captcha_handler = new SLR_Captcha_Handler();
+        }
     }
 
     private static $enqueued_themes = []; // Track enqueued themes
@@ -255,24 +260,64 @@ class Sms_Login_Register_Public {
         return [ 'type' => 'invalid', 'value' => null ];
     }
 
-     /**
-     * Enqueues base scripts and styles if not already done.
-     * The theme-specific assets are now enqueued by get_otp_form_html.
-     *
-     * @since 1.0.1
-     */
-    public function maybe_enqueue_scripts() {
-        if ( self::$scripts_enqueued ) {
-            return;
+    /**
+ * Enqueues base scripts and styles if not already done.
+ * The theme-specific assets are now enqueued by get_otp_form_html.
+ *
+ * @since 1.0.1
+ */
+public function maybe_enqueue_scripts() {
+    if (self::$scripts_enqueued) {
+        return;
+    }
+
+    global $post;
+    $shortcode_found = false;
+
+    // List of shortcodes to check for.
+    $shortcodes = [
+        'sms_login_register_form',
+        'slr_otp_form',
+        'custom_login_form'
+    ];
+
+    // Check if the post content contains any of the shortcodes.
+    if (is_a($post, 'WP_Post')) {
+        foreach($shortcodes as $shortcode) {
+            if (has_shortcode($post->post_content, $shortcode)) {
+                $shortcode_found = true;
+                break;
+            }
         }
+    }
+
+    // Fallback for cases where has_shortcode might not work
+    if (!$shortcode_found) {
+        // Fallback logic here
+    }
+
+    // If a shortcode is found, enqueue the assets.
+    if ($shortcode_found) {
+        // Enqueue public-facing stylesheet.
+        wp_enqueue_style(
+            $this->plugin_name,
+            plugin_dir_url(__FILE__) . 'css/sms-login-register-public.css',
+            [],
+            $this->version,
+            'all'
+        );
+
+        // Enqueue the selected theme's stylesheet.
+        $this->theme_manager->enqueue_selected_theme_style();
 
         wp_enqueue_script(
             $this->plugin_name . '-public',
             SLR_PLUGIN_URL . 'public/js/sms-login-register-public.js',
-            array( 'jquery' ),
+            array('jquery'),
             $this->version,
             true
         );
+
         wp_enqueue_style(
             $this->plugin_name . '-public',
             SLR_PLUGIN_URL . 'public/css/sms-login-register-public.css',
@@ -282,50 +327,54 @@ class Sms_Login_Register_Public {
 
         $this->enqueue_captcha_scripts_if_needed();
 
-        // wp_localize_script should be called only once after the main script is enqueued.
+        // Localize script
         wp_localize_script(
             $this->plugin_name . '-public',
             'slr_public_data',
             array(
-                'ajax_url' => admin_url( 'admin-ajax.php' ),
-                'send_otp_nonce' => wp_create_nonce( 'slr_send_otp_nonce' ),
-                'process_form_nonce' => wp_create_nonce( 'slr_process_form_nonce' ),
-                'text_sending_otp' => __( 'ارسال کد تایید...', 'yakutlogin' ),
-                'text_processing' => __( 'درحال پردازش...', 'yakutlogin' ),
-                'text_otp_sent' => __( 'کد تایید ارسال شد', 'yakutlogin' ), // Updated text
-                'text_error_sending_otp' => __( 'خطا در ارسال کد تایید . لطفا بعدا مجدد امتحان کنید', 'yakutlogin' ),
-                'text_invalid_email' => __( 'لطفا یک ایمیل معتبر وارد کنید', 'yakutlogin' ),
-                'text_invalid_phone' => __( 'لطفا یک شماره تلفن معتبر وارد کنید', 'yakutlogin' ), // Added
-                'text_fill_otp' => __( 'لطفا کد تایید را وارد کنید', 'yakutlogin'),
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'send_otp_nonce' => wp_create_nonce('slr_send_otp_nonce'),
+                'process_form_nonce' => wp_create_nonce('slr_process_form_nonce'),
+                'text_sending_otp' => __('ارسال کد تایید...', 'yakutlogin'),
+                'text_processing' => __('درحال پردازش...', 'yakutlogin'),
+                'text_otp_sent' => __('کد تایید ارسال شد', 'yakutlogin'),
+                'text_error_sending_otp' => __('خطا در ارسال کد تایید . لطفا بعدا مجدد امتحان کنید', 'yakutlogin'),
+                'text_invalid_email' => __('لطفا یک ایمیل معتبر وارد کنید', 'yakutlogin'),
+                'text_invalid_phone' => __('لطفا یک شماره تلفن معتبر وارد کنید', 'yakutlogin'),
+                'text_fill_otp' => __('لطفا کد تایید را وارد کنید', 'yakutlogin'),
                 'text_login_success' => __('با موفقیت وارد شدید', 'yakutlogin'),
                 'text_registration_success' => __('ثبت نام شما با موفقیت انجام شد', 'yakutlogin'),
             )
         );
         
         self::$scripts_enqueued = true;
+    } // این براکت بسته شدن if ($shortcode_found) گم شده بود
+}
+
+/**
+ * Enqueues CAPTCHA scripts if needed.
+ */
+public function enqueue_captcha_scripts_if_needed() {
+    if (!$this->captcha_handler) return;
+
+    $options = get_option('slr_plugin_options');
+    $captcha_type = $options['captcha_type'] ?? 'none';
+    
+    $script_handle = '';
+    $script_url = '';
+
+    if ($captcha_type === 'recaptcha_v2' && !empty($options['recaptcha_v2_site_key'])) {
+        $script_handle = 'google-recaptcha';
+        $script_url = 'https://www.google.com/recaptcha/api.js?render=explicit&onload=slrRenderReCaptcha';
+    } elseif ($captcha_type === 'turnstile' && !empty($options['turnstile_site_key'])) {
+        $script_handle = 'cloudflare-turnstile';
+        $script_url = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=slrRenderTurnstile';
     }
 
-    /**
-     * Enqueues CAPTCHA API scripts if a CAPTCHA service is enabled.
-     * @since 1.0.3
-     */
-    private function enqueue_captcha_scripts_if_needed() {
-        $options = get_option( 'slr_plugin_options' );
-        $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
-
-        if ( $captcha_type === 'recaptcha_v2' && !empty($options['recaptcha_v2_site_key']) ) {
-            if (!wp_script_is('google-recaptcha', 'enqueued')) {
-                wp_enqueue_script( 'google-recaptcha', 'https://www.google.com/recaptcha/api.js?render=explicit&onload=slrRenderReCaptcha', array(), null, true );
-                // Added onload callback for explicit rendering
-            }
-        } elseif ( $captcha_type === 'turnstile' && !empty($options['turnstile_site_key']) ) {
-             if (!wp_script_is('cloudflare-turnstile', 'enqueued')) {
-                // Cloudflare recommends adding async defer directly to script tag if possible,
-                // but for wp_enqueue_script, we can rely on it being in footer or use wp_script_add_data.
-                wp_enqueue_script( 'cloudflare-turnstile', 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=slrRenderTurnstile', array(), null, true );
-            }
-        }
+    if ($script_handle && !wp_script_is($script_handle, 'enqueued')) {
+        wp_enqueue_script($script_handle, $script_url, [], null, true);
     }
+}
 
     /**
      * Adds OTP field and send OTP button to the login form (wp-login.php).

@@ -12,14 +12,14 @@ use CBOR\NegativeIntegerObject;
 use CBOR\TextStringObject;
 use CBOR\UnsignedIntegerObject;
 use Symfony\Component\Uid\Uuid;
-use Webauthn\AuthenticationExtensions\AuthenticationExtensionLoader;
+use Webauthn\AuthenticationExtensions\AuthenticationExtensionsClientOutputsLoader;
 use Webauthn\Exception\InvalidDataException;
 use function chr;
 use function ord;
 
-final readonly class AuthenticatorDataLoader
+final class AuthenticatorDataLoader
 {
-    private Decoder $decoder;
+    private readonly Decoder $decoder;
 
     private function __construct()
     {
@@ -51,7 +51,7 @@ final readonly class AuthenticatorDataLoader
                 $authData,
                 'The data does not contain a valid credential public key.'
             );
-            $attestedCredentialData = AttestedCredentialData::create(
+            $attestedCredentialData = new AttestedCredentialData(
                 $aaguid,
                 $credentialId,
                 (string) $credentialPublicKey
@@ -61,7 +61,7 @@ final readonly class AuthenticatorDataLoader
         $extension = null;
         if (0 !== (ord($flags) & AuthenticatorData::FLAG_ED)) {
             $extension = $this->decoder->decode($authDataStream);
-            $extension = AuthenticationExtensionLoader::load($extension);
+            $extension = AuthenticationExtensionsClientOutputsLoader::load($extension);
         }
         $authDataStream->isEOF() || throw InvalidDataException::create(
             $authData,
@@ -69,7 +69,7 @@ final readonly class AuthenticatorDataLoader
         );
         $authDataStream->close();
 
-        return AuthenticatorData::create(
+        return new AuthenticatorData(
             $authData,
             $rp_id_hash,
             $flags,
@@ -83,13 +83,13 @@ final readonly class AuthenticatorDataLoader
     {
         $needle = hex2bin('a301634f4b500327206745643235353139');
         $correct = hex2bin('a401634f4b500327206745643235353139');
-        $position = strpos($data, (string) $needle);
+        $position = mb_strpos($data, $needle, 0, '8bit');
         if ($position === false) {
             return $data;
         }
 
-        $begin = substr($data, 0, $position);
-        $end = substr($data, $position);
+        $begin = mb_substr($data, 0, $position, '8bit');
+        $end = mb_substr($data, $position, null, '8bit');
         $end = str_replace($needle, $correct, $end);
         $cbor = new StringStream($end);
         $badKey = $this->decoder->decode($cbor);

@@ -23,13 +23,20 @@ class AuthenticatorAttestationResponse extends AuthenticatorResponse
     }
 
     /**
-     * @param string[] $transports
+     * @deprecated since 4.7.0. Please use the property directly.
      */
-    public static function create(
-        CollectedClientData $clientDataJSON,
-        AttestationObject $attestationObject,
-        array $transports = []
-    ): self {
-        return new self($clientDataJSON, $attestationObject, $transports);
+    public function getAttestationObject(): AttestationObject
+    {
+        return $this->attestationObject;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     *
+     * @return string[]
+     */
+    public function getTransports(): array
+    {
+        return $this->transports;
     }
 }

@@ -32,7 +32,7 @@ $options = get_option( 'slr_plugin_options', [] );
                 <li data-content="google-captcha-content">
                     <i class="fab fa-google"></i>
                     <span>ورود با گوگل و کپچا</span>
-                    <div class.nav-indicator"></div>
+                    <div class="nav-indicator"></div>
                 </li>
                 <li data-content="integrations-content">
                     <i class="fas fa-puzzle-piece"></i>
@@ -73,9 +73,6 @@ $options = get_option( 'slr_plugin_options', [] );
                         </div>
                     </div>
                 </div>
-
-                // In admin/partials/yakutlogin-admin-panel-display.php
-
 <div id="sms-gateway-content" class="content-section">
     <div class="section-header">
         <h2>درگاه پیامک</h2>

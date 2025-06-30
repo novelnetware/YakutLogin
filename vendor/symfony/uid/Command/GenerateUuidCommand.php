@@ -20,16 +20,18 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Uid\Exception\LogicException;
 use Symfony\Component\Uid\Factory\UuidFactory;
 use Symfony\Component\Uid\Uuid;
 
 #[AsCommand(name: 'uuid:generate', description: 'Generate a UUID')]
 class GenerateUuidCommand extends Command
 {
-    public function __construct(
-        private UuidFactory $factory = new UuidFactory(),
-    ) {
+    private UuidFactory $factory;
+
+    public function __construct(?UuidFactory $factory = null)
+    {
+        $this->factory = $factory ?? new UuidFactory();
+
         parent::__construct();
     }
 
@@ -43,7 +45,7 @@ class GenerateUuidCommand extends Command
                 new InputOption('namespace', null, InputOption::VALUE_REQUIRED, 'The UUID to use at the namespace for named-based UUIDs, predefined namespaces keywords "dns", "url", "oid" and "x500" are accepted'),
                 new InputOption('random-based', null, InputOption::VALUE_NONE, 'To generate a random-based UUID'),
                 new InputOption('count', 'c', InputOption::VALUE_REQUIRED, 'The number of UUID to generate', 1),
-                new InputOption('format', 'f', InputOption::VALUE_REQUIRED, \sprintf('The UUID output format ("%s")', implode('", "', $this->getAvailableFormatOptions())), 'rfc4122'),
+                new InputOption('format', 'f', InputOption::VALUE_REQUIRED, sprintf('The UUID output format ("%s")', implode('", "', $this->getAvailableFormatOptions())), 'rfc4122'),
             ])
             ->setHelp(<<<'EOF'
 The <info>%command.name%</info> generates a UUID.
@@ -116,7 +118,7 @@ EOF
                     try {
                         $node = Uuid::fromString($node);
                     } catch (\InvalidArgumentException $e) {
-                        $io->error(\sprintf('Invalid node "%s": %s', $node, $e->getMessage()));
+                        $io->error(sprintf('Invalid node "%s": %s', $node, $e->getMessage()));
 
                         return 1;
                     }
@@ -125,7 +127,7 @@ EOF
                 try {
                     new \DateTimeImmutable($time);
                 } catch (\Exception $e) {
-                    $io->error(\sprintf('Invalid timestamp "%s": %s', $time, str_replace('DateTimeImmutable::__construct(): ', '', $e->getMessage())));
+                    $io->error(sprintf('Invalid timestamp "%s": %s', $time, str_replace('DateTimeImmutable::__construct(): ', '', $e->getMessage())));
 
                     return 1;
                 }
@@ -138,7 +140,7 @@ EOF
                     try {
                         $namespace = Uuid::fromString($namespace);
                     } catch (\InvalidArgumentException $e) {
-                        $io->error(\sprintf('Invalid namespace "%s": %s', $namespace, $e->getMessage()));
+                        $io->error(sprintf('Invalid namespace "%s": %s', $namespace, $e->getMessage()));
 
                         return 1;
                     }
@@ -147,7 +149,7 @@ EOF
                 $create = function () use ($namespace, $name): Uuid {
                     try {
                         $factory = $this->factory->nameBased($namespace);
-                    } catch (LogicException) {
+                    } catch (\LogicException) {
                         throw new \InvalidArgumentException('Missing namespace: use the "--namespace" option or configure a default namespace in the underlying factory.');
                     }
 
@@ -166,10 +168,10 @@ EOF
 
         $formatOption = $input->getOption('format');
 
-        if (\in_array($formatOption, $this->getAvailableFormatOptions(), true)) {
+        if (\in_array($formatOption, $this->getAvailableFormatOptions())) {
             $format = 'to'.ucfirst($formatOption);
         } else {
-            $io->error(\sprintf('Invalid format "%s", supported formats are "%s".', $formatOption, implode('", "', $this->getAvailableFormatOptions())));
+            $io->error(sprintf('Invalid format "%s", supported formats are "%s".', $formatOption, implode('", "', $this->getAvailableFormatOptions())));
 
             return 1;
         }
@@ -195,7 +197,6 @@ EOF
         }
     }
 
-    /** @return string[] */
     private function getAvailableFormatOptions(): array
     {
         return [

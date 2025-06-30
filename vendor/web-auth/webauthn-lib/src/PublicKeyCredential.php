@@ -4,28 +4,54 @@ declare(strict_types=1);
 
 namespace Webauthn;
 
+use Stringable;
+use const JSON_THROW_ON_ERROR;
+
 /**
  * @see https://www.w3.org/TR/webauthn/#iface-pkcredential
  */
-class PublicKeyCredential extends Credential
+class PublicKeyCredential extends Credential implements Stringable
 {
     public function __construct(
+        string $id,
         string $type,
-        string $rawId,
+        public readonly string $rawId,
         public readonly AuthenticatorResponse $response
     ) {
-        parent::__construct($type, $rawId);
+        parent::__construct($id, $type);
     }
 
-    public static function create(string $type, string $rawId, AuthenticatorResponse $response): self
+    public function __toString(): string
     {
-        return new self($type, $rawId, $response);
+        return json_encode($this, JSON_THROW_ON_ERROR);
     }
 
-    public function getPublicKeyCredentialDescriptor(): PublicKeyCredentialDescriptor
+    public static function create(string $id, string $type, string $rawId, AuthenticatorResponse $response): self
     {
-        $transport = $this->response instanceof AuthenticatorAttestationResponse ? $this->response->transports : [];
+        return new self($id, $type, $rawId, $response);
+    }
 
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getRawId(): string
+    {
+        return $this->rawId;
+    }
+
+    /**
+     * @deprecated since 4.7.0. Please use the property directly.
+     */
+    public function getResponse(): AuthenticatorResponse
+    {
+        return $this->response;
+    }
+
+    /**
+     * @param string[] $transport
+     */
+    public function getPublicKeyCredentialDescriptor(array $transport = []): PublicKeyCredentialDescriptor
+    {
         return PublicKeyCredentialDescriptor::create($this->type, $this->rawId, $transport);
     }
 }

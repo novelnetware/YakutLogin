@@ -3,7 +3,7 @@
 /**
  * The public-facing functionality of the plugin.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.0
  *
  * @package    Sms_Login_Register
@@ -18,7 +18,7 @@
  *
  * @package    Sms_Login_Register
  * @subpackage Sms_Login_Register/public
- * @author     Your Name <email@example.com>
+ * @author     Yakut Co <info@yakut.ir>
  */
 class Sms_Login_Register_Public {
 
@@ -65,19 +65,19 @@ class Sms_Login_Register_Public {
      * @param string             $version     The version of this plugin.
      * @param SLR_Theme_Manager  $theme_manager The theme manager instance.
      */
-    public function __construct($plugin_name, $version, $theme_manager) {
-        $this->plugin_name = $plugin_name;
-        $this->version = $version;
-        $this->theme_manager = $theme_manager;
+public function __construct($plugin_name, $version, $theme_manager) {
+    $this->plugin_name = $plugin_name;
+    $this->version = $version;
+    $this->theme_manager = $theme_manager;
 
-        // Instantiate handlers once to be reused
-        if (class_exists('SLR_Gateway_Manager')) {
-            $this->gateway_manager = new SLR_Gateway_Manager();
-        }
-        if (class_exists('SLR_Captcha_Handler')) {
-            $this->captcha_handler = new SLR_Captcha_Handler();
-        }
+    // Instantiate handlers once to be reused
+    if (class_exists('SLR_Gateway_Manager')) {
+        $this->gateway_manager = new SLR_Gateway_Manager();
     }
+    if (class_exists('SLR_Captcha_Handler')) {
+        $this->captcha_handler = new SLR_Captcha_Handler();
+    }
+}
 
     private static $enqueued_themes = []; // Track enqueued themes
 
@@ -148,7 +148,6 @@ class Sms_Login_Register_Public {
                 'send_otp' => __( 'ارسال کد تایید', 'yakutlogin' ),
                 'submit'   => __( 'ورود / عضویت', 'yakutlogin' ),
                 'google'   => __( 'ورود با گوگل', 'yakutlogin' ),
-                'webauthn' => __( 'ورود با اثر انگشت', 'yakutlogin' ),
             ),
         );
 
@@ -188,9 +187,6 @@ class Sms_Login_Register_Public {
             $args['google_login_url'] = add_query_arg( 'slr_action', 'google_login_init', home_url( '/' ) );
             $args['google_login_url'] = wp_nonce_url( $args['google_login_url'], 'slr_google_login_init_nonce', 'slr_google_nonce' );
         }
-        
-        // WebAuthn data
-        $args['webauthn_enabled'] = !empty($options['webauthn_enabled']);
         
         // Captcha data
         $captcha_type = $options['captcha_type'] ?? 'none';
@@ -445,49 +441,50 @@ public function enqueue_captcha_scripts_if_needed() {
 
 
     /**
-     * Sends an OTP email to the user with proper headers.
-     *
-     * @param string $email_address The recipient's email address.
-     * @param string $otp The one-time password.
-     * @return bool True on success, false on failure.
-     */
-    public function send_otp_email( $email_address, $otp ) {
-        if ( empty( get_option( 'slr_plugin_options' )['email_otp_enabled'] ) ) {
-            slr_log('ارسال ایمیل متوقف شد: قابلیت ارسال ایمیل OTP غیرفعال است.');
-            return false;
-        }
+ * Sends an OTP email to the user with proper headers.
+ *
+ * @param string $email_address The recipient's email address.
+ * @param string $otp The one-time password.
+ * @return bool True on success, false on failure.
+ */
+public function send_otp_email( $email_address, $otp ) {
+    $all_options = get_option('slr_plugin_options');
 
-        $subject_template = $options['otp_email_subject'] ?? __( 'کد تایید شما', 'yakutlogin' );
-        $body_template = $options['otp_email_body'] ?? __( "کد تایید شما: {otp_code}", 'yakutlogin' );
-        
-        // Replace placeholders
-        $subject = str_replace( '{otp_code}', $otp, $subject_template );
-        $body = str_replace( '{otp_code}', $otp, $body_template );
-        $body = str_replace( '{site_title}', get_bloginfo( 'name' ), $body );
-        $body = str_replace( '{site_url}', home_url(), $body );
-        $body = nl2br( $body );
-
-        // تنظیم هدرهای استاندارد
-        $site_name = get_bloginfo('name');
-        $from_email = 'noreply@' . preg_replace('#^www\.#', '', strtolower($_SERVER['SERVER_NAME']));
-        $headers = [
-            'Content-Type: text/html; charset=UTF-8',
-            "From: {$site_name} <{$from_email}>",
-        ];
-
-        slr_log("تلاش برای ارسال ایمیل OTP به: {$email_address}");
-        slr_log("موضوع: {$subject}");
-        // --- پایان بخش اصلاح شده ---
-$sent = wp_mail( $email_address, $subject, $body, $headers );
-
-        if ($sent) {
-            slr_log("ایمیل با موفقیت ارسال شد.");
-            return true;
-        } else {
-            slr_log("ارسال ایمیل با شکست مواجه شد. (تابع wp_mail مقدار false برگرداند)");
-            return false;
-        }
+    if ( empty( $all_options['email_otp_enabled'] ) ) {
+        slr_log('ارسال ایمیل متوقف شد: قابلیت ارسال ایمیل OTP غیرفعال است.');
+        return false;
     }
+
+    $subject_template = $all_options['otp_email_subject'] ?? 'کد تایید شما';
+    $body_template    = $all_options['otp_email_body'] ?? 'کد تایید شما: {otp_code}';
+    
+    // جایگزینی شناسه‌ها
+    $subject = str_replace( '{otp_code}', $otp, $subject_template );
+    $body    = str_replace( '{otp_code}', $otp, $body_template );
+    $body    = str_replace( '{site_title}', get_bloginfo( 'name' ), $body );
+    $body    = str_replace( '{site_url}', home_url(), $body );
+    $body    = nl2br( $body );
+
+    $site_name  = get_bloginfo('name');
+    $from_email = 'noreply@' . preg_replace('#^www\.#', '', strtolower($_SERVER['SERVER_NAME']));
+    
+    // تعریف هدرها برای محتوای فارسی
+    $headers = [
+        'Content-Type: text/html; charset=UTF-8',
+        "From: {$site_name} <{$from_email}>",
+    ];
+
+    // ارسال ایمیل
+    $sent = wp_mail( $email_address, $subject, $body, $headers );
+
+    if ($sent) {
+        slr_log("ایمیل با موفقیت ارسال شد.");
+        return true;
+    } else {
+        slr_log("ارسال ایمیل با شکست مواجه شد.");
+        return false;
+    }
+}
 
      /**
      * AJAX handler for sending OTP.
@@ -721,17 +718,17 @@ $sent = wp_mail( $email_address, $subject, $body, $headers );
         check_ajax_referer( 'slr_process_form_nonce', 'slr_process_form_nonce_field' );
 
         // ۲. بررسی کپچا
-        $captcha_handler = new SLR_Captcha_Handler();
-        $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
-        if ( ! $captcha_handler->verify_captcha( $captcha_response_token ) ) {
-            wp_send_json_error( array( 'message' => __( 'تایید کپچا ناموفق بود.', 'yakutlogin' ) ) );
-            return;
-        }
+      //  $captcha_handler = new SLR_Captcha_Handler();
+       // $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
+      //  if ( ! $captcha_handler->verify_captcha( $captcha_response_token ) ) {
+      //      wp_send_json_error( array( 'message' => __( 'تایید کپچا ناموفق بود.', 'yakutlogin' ) ) );
+      //      return;
+      //  }
 
-        // ۳. دریافت و اعتبارسنجی ورودی‌ها
-        $identifier_input = isset( $_POST['identifier'] ) ? $_POST['identifier'] : '';
-        $otp_code         = isset( $_POST['otp_code'] ) ? sanitize_text_field( $_POST['otp_code'] ) : '';
-        $redirect_to      = isset( $_POST['redirect_to'] ) ? esc_url_raw( $_POST['redirect_to'] ) : '';
+// ۳. دریافت و اعتبارسنجی ورودی‌ها
+$identifier_input = isset( $_POST['slr_identifier'] ) ? $_POST['slr_identifier'] : '';
+$otp_code         = isset( $_POST['slr_otp_code'] ) ? sanitize_text_field( $_POST['slr_otp_code'] ) : '';
+$redirect_to      = isset( $_POST['slr_redirect_to'] ) ? esc_url_raw( $_POST['slr_redirect_to'] ) : '';
 
         if ( empty( $identifier_input ) || empty( $otp_code ) ) {
             wp_send_json_error( array( 'message' => __( 'لطفا تمام فیلدها را پر کنید.', 'yakutlogin' ) ) );
@@ -1027,35 +1024,6 @@ $sent = wp_mail( $email_address, $subject, $body, $headers );
             delete_transient( $transient_key );
         }
     }
-
-    public function render_webauthn_register_button($atts) {
-    if ( !is_user_logged_in() || empty(get_option('slr_plugin_options')['webauthn_enabled']) ) {
-        return ''; // فقط برای کاربران وارد شده و در صورت فعال بودن نمایش داده شود
-    }
-
-    // اسکریپت‌های لازم را به صف اضافه کن
-    $this->enqueue_webauthn_scripts();
-
-    return '<div id="slr-webauthn-register-widget">'
-         . '<button id="slr-register-device-frontend" class="button">ثبت دستگاه برای ورود بدون رمز</button>'
-         . '<div id="slr-webauthn-message" style="margin-top:10px;"></div>'
-         . '</div>';
-}
-
-public function enqueue_webauthn_scripts() {
-    wp_enqueue_script(
-        'slr-webauthn-frontend',
-        SLR_PLUGIN_URL . 'public/js/slr-webauthn-frontend.js',
-        ['jquery'],
-        $this->version,
-        true
-    );
-    wp_localize_script('slr-webauthn-frontend', 'slr_webauthn_data', [
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'get_options_nonce' => wp_create_nonce('yakutlogin_admin_nonce'), // استفاده از نانس ادمین چون کاربر لاگین است
-        'verify_nonce' => wp_create_nonce('yakutlogin_verify_registration_nonce') // یک نانس جدید برای تایید
-    ]);
-}
 
 // این متد جدید را به کلاس اضافه کنید
     public function handle_wp_mail_failed( $wp_error ) {

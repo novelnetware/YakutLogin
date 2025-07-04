@@ -24,10 +24,6 @@ class SLR_Elementor_Widget_Loader {
         // ویجت فرم ورود
         require_once SLR_PLUGIN_DIR . 'includes/elementor/widgets/class-slr-otp-form-widget.php';
         $widgets_manager->register( new \Sms_Login_Register_Elementor\Widgets\SLR_Otp_Form_Widget() );
-
-        // ویجت دکمه WebAuthn
-        require_once SLR_PLUGIN_DIR . 'includes/elementor/widgets/class-slr-webauthn-widget.php';
-        $widgets_manager->register( new \Sms_Login_Register_Elementor\Widgets\SLR_WebAuthn_Widget() );
     }
 
     public function add_elementor_widget_categories( $elements_manager ) {

@@ -2,7 +2,7 @@
 /**
  * The admin-specific functionality of the plugin.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.0
  *
  * @package    Sms_Login_Register
@@ -14,12 +14,10 @@ class Sms_Login_Register_Admin {
     private $plugin_name;
     private $version;
     private $gateway_manager;
-    private $webauthn_handler;
 
-    public function __construct( $plugin_name, $version , $webauthn_handler ) {
+    public function __construct( $plugin_name, $version) {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
-        $this->webauthn_handler = $webauthn_handler;
         if (class_exists('SLR_Gateway_Manager')) {
             $this->gateway_manager = new SLR_Gateway_Manager();
         } else {
@@ -30,79 +28,148 @@ class Sms_Login_Register_Admin {
         add_action( 'wp_ajax_yakutlogin_cleanup_data', array( $this, 'ajax_cleanup_data' ) );
     }
 
-   /**
-     * یک لیست کامل از تمام فیلدهای checkbox در پنل تنظیمات برمی‌گرداند.
-     * این تابع برای ذخیره‌سازی صحیح مقادیر false (تیک نخورده) ضروری است.
-     */
-    private function get_all_checkbox_fields() {
-        $checkboxes = [
-            'email_otp_enabled', 
-            'google_login_enabled', 
-            'wc_checkout_otp_integration', 
-            'webauthn_enabled',
-        ];
+/**
+ * لیست کامل تمام فیلدهای checkbox در پنل تنظیمات
+ */
+private function get_all_checkbox_fields() {
+    return [
+        'email_otp_enabled',
+        'google_login_enabled',
+        'wc_checkout_otp_integration',
+        // فیلدهای checkbox مربوط به درگاه‌های پیامک
+        'kavenegar_use_lookup',
+        'melipayamak_is_shared',
+        'smsir_fast_mode',
+        'payamresan_use_template',
+        'ghasedaksms_use_pattern',
+        // هر checkbox دیگری که در آینده اضافه می‌کنید
+    ];
+}
 
-        // اضافه کردن checkbox های تمام درگاه‌های پیامک به صورت داینامیک
-        if (isset($this->gateway_manager)) {
-            foreach ($this->gateway_manager->get_available_gateways() as $gateway) {
-                foreach ($gateway->get_settings_fields() as $field_id => $field_args) {
-                    if (isset($field_args['type']) && $field_args['type'] === 'checkbox') {
-                        $checkboxes[] = $field_id;
-                    }
-                }
+/**
+ * هندلر AJAX برای ذخیره تنظیمات (نسخه نهایی و اصلاح شده)
+ */
+public function ajax_save_settings() {
+    check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
+    }
+
+    // ۱. لیست کامل و صحیح تمام فیلدهای ممکن
+    $all_possible_options = [
+        // تنظیمات عمومی و ایمیل
+        'email_otp_enabled' => 'checkbox',
+        'otp_email_subject' => 'text',
+        'otp_email_body'    => 'editor',
+
+        // درگاه پیامک
+        'sms_provider'        => 'key',
+        'sms_provider_backup' => 'key',
+
+        // کاوه‌نگار
+        'kavenegar_api_key'         => 'password',
+        'kavenegar_sender_line'     => 'text',
+        'kavenegar_use_lookup'      => 'checkbox',
+        'kavenegar_lookup_template' => 'text',
+
+        // ملی پیامک
+        'melipayamak_username'  => 'text',
+        'melipayamak_password'  => 'password',
+        'melipayamak_from'      => 'text',
+        'melipayamak_body_id'   => 'number',
+        'melipayamak_is_shared' => 'checkbox',
+
+        // کاوان اس‌ام‌اس
+        'kavansms_api_key' => 'password',
+        'kavansms_otp_id'  => 'text',
+        
+        // فراز اس‌ام‌اس
+        'farazsms_username'          => 'text',
+        'farazsms_password'          => 'password',
+        'farazsms_from'              => 'text',
+        'farazsms_pattern_code'      => 'text',
+        'farazsms_otp_variable_name' => 'text',
+
+        // SMS.ir
+        'smsir_api_key'            => 'password',
+        'smsir_template_id'        => 'number',
+        'smsir_otp_parameter_name' => 'text',
+        'smsir_fast_mode'          => 'checkbox',
+        'smsir_line_number'        => 'text',
+
+        // ورود با گوگل
+        'google_login_enabled' => 'checkbox',
+        'google_client_id'     => 'text',
+        'google_client_secret' => 'password',
+
+        // کپچا
+        'captcha_type'              => 'key',
+        'recaptcha_v2_site_key'   => 'text',
+        'recaptcha_v2_secret_key' => 'password',
+        'turnstile_site_key'      => 'text',
+        'turnstile_secret_key'    => 'password',
+
+        // ووکامرس
+        'wc_checkout_otp_integration' => 'checkbox',
+        
+        // فیلدهای قدیمی‌تر برای سازگاری
+        'ghasedaksms_api_key'     => 'password',
+        'ghasedaksms_line_number' => 'text',
+        'ghasedaksms_use_pattern' => 'checkbox',
+        'payamresan_username'     => 'text',
+        'payamresan_password'     => 'password',
+        'payamresan_from'         => 'text',
+        'payamresan_use_template' => 'checkbox',
+        'sms_otp_template'        => 'text',
+    ];
+
+
+    // ۲. دریافت داده‌های ارسالی
+    $submitted_data = [];
+    if (isset($_POST['settings'])) {
+        parse_str(wp_unslash($_POST['settings']), $submitted_data);
+    } else {
+        wp_send_json_error(['message' => 'فرمت داده‌ها نامعتبر است']);
+    }
+
+    // ۳. دریافت تنظیمات فعلی
+    $current_options = get_option('slr_plugin_options', []);
+
+    // ۴. پردازش تمام فیلدها بر اساس لیست کامل
+    foreach ($all_possible_options as $key => $type) {
+        if ($type === 'checkbox') {
+            // برای چک‌باکس‌ها: اگر ارسال شده باشد 1، وگرنه 0 ذخیره شود
+            $current_options[$key] = isset($submitted_data[$key]) ? 1 : 0;
+        } elseif (isset($submitted_data[$key])) {
+            // برای سایر فیلدها: فقط اگر مقداری برایشان ارسال شده باشد، پردازش شوند
+            $value = $submitted_data[$key];
+            switch ($type) {
+                case 'editor':
+            case 'textarea':
+                $current_options[$key] = wp_kses_post($value);
+                break;
+                case 'password':
+                case 'text':
+                    $current_options[$key] = sanitize_text_field($value);
+                    break;
+                case 'number':
+                    $current_options[$key] = intval($value);
+                    break;
+                case 'key':
+                    $current_options[$key] = sanitize_key($value);
+                    break;
+                default:
+                    $current_options[$key] = sanitize_text_field($value);
             }
         }
-        
-        return array_unique($checkboxes);
     }
 
-    /**
-     * AJAX handler to save settings. (Final & Robust Version)
-     * این نسخه نهایی، مشکل ذخیره نشدن تنظیمات را به طور کامل حل می‌کند.
-     */
-    public function ajax_save_settings() {
-        check_ajax_referer( 'yakutlogin_admin_nonce', 'nonce' );
-
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => 'دسترسی غیرمجاز' ] );
-        }
-
-        // ۱. داده‌های ارسال شده از فرم را به آرایه تبدیل می‌کنیم
-        $submitted_data = [];
-        if (isset($_POST['settings'])) {
-            parse_str($_POST['settings'], $submitted_data);
-        } else {
-            // این حالت برای زمانی است که داده‌ها مستقیماً ارسال شوند
-            $submitted_data = $_POST;
-        }
-        
-        if (empty($submitted_data)) {
-            wp_send_json_error( [ 'message' => 'هیچ داده‌ای برای ذخیره ارسال نشده است.' ] );
-            return;
-        }
-
-        // ۲. تنظیمات فعلی را از دیتابیس می‌خوانیم تا مقادیر قبلی را از دست ندهیم
-        $options = get_option('slr_plugin_options', []);
-
-        // ۳. داده‌های پاک‌سازی شده را با تنظیمات فعلی ادغام می‌کنیم
-        // این کار تضمین می‌کند مقادیری که در فرم فعلی نیستند (مثلا تنظیمات تب‌های دیگر) حفظ شوند
-        $new_options = array_merge($options, $submitted_data);
-
-        // ۴. وضعیت تمام checkbox ها را به صورت دقیق و نهایی تنظیم می‌کنیم
-        foreach ($this->get_all_checkbox_fields() as $checkbox_key) {
-            // اگر checkbox تیک خورده باشد (و در داده‌های ارسالی وجود داشته باشد)، مقدار آن true است.
-            // در غیر این صورت، یعنی تیک آن برداشته شده و باید false ذخیره شود.
-            $new_options[$checkbox_key] = isset($submitted_data[$checkbox_key]);
-        }
-        
-        // ۵. قبل از ذخیره، کل آرایه تنظیمات را یک بار پاک‌سازی می‌کنیم
-        $final_sanitized_options = $this->sanitize_settings($new_options);
-        
-        // ۶. تنظیمات نهایی و کامل را در دیتابیس ذخیره می‌کنیم
-        update_option( 'slr_plugin_options', $final_sanitized_options );
-        
-        wp_send_json_success( [ 'message' => 'تنظیمات با موفقیت ذخیره شد!' ] );
-    }
+    // ۵. ذخیره نهایی
+    update_option('slr_plugin_options', $current_options);
+    
+    wp_send_json_success(['message' => 'تنظیمات با موفقیت ذخیره شد!']);
+}
 
     /**
      * هندلر ایجکس برای دریافت فیلدهای درگاه پیامک
@@ -331,43 +398,30 @@ public function enqueue_scripts( $hook ) {
     }
 
     /**
-     * Sanitizes the settings array. (Final & Corrected Version)
-     * This version only cleans the input data and does not load old options.
-     */
-    public function sanitize_settings( $input ) {
-        // ۱. یک آرایه خالی برای خروجی پاک‌سازی شده می‌سازیم
-        $new_sanitized_input = [];
+ * پاک‌سازی تنظیمات (نسخه نهایی)
+ */
+public function sanitize_settings($input) {
+    $sanitized = [];
 
-        // ۲. اطمینان حاصل می‌کنیم که ورودی یک آرایه است
-        if ( ! is_array( $input ) ) {
-            return $new_sanitized_input;
-        }
-
-        // ۳. روی داده‌های ورودی حلقه می‌زنیم و هر کدام را پاک‌سازی می‌کنیم
-        foreach ( $input as $key => $value ) {
-            // برای امنیت، می‌توانیم نوع پاک‌سازی را بر اساس کلید مشخص کنیم
-            switch ( $key ) {
-                case 'otp_email_body':
-                    // برای فیلدهایی که نیاز به HTML دارند
-                    $new_sanitized_input[ $key ] = wp_kses_post( $value );
-                    break;
-                
-                // سایر فیلدهای خاص را می‌توانید در اینجا اضافه کنید
-
-                default:
-                    // برای تمام فیلدهای دیگر، از پاک‌سازی استاندارد متن استفاده می‌کنیم
-                    if ( is_array( $value ) ) {
-                        // اگر مقدار خودش یک آرایه باشد (برای تنظیمات پیچیده‌تر در آینده)
-                        $new_sanitized_input[ $key ] = array_map( 'sanitize_text_field', $value );
-                    } else {
-                        $new_sanitized_input[ $key ] = sanitize_text_field( $value );
-                    }
-                    break;
-            }
-        }
-
-        return $new_sanitized_input;
+    if (!is_array($input)) {
+        return $sanitized;
     }
+
+    foreach ($input as $key => $value) {
+        // مدیریت انواع فیلدها
+        if (strpos($key, '_body_id') !== false || strpos($key, '_template_id') !== false) {
+            $sanitized[$key] = absint($value);
+        } elseif (strpos($key, '_api_key') !== false || strpos($key, '_password') !== false) {
+            $sanitized[$key] = sanitize_text_field($value);
+        } elseif (strpos($key, '_template') !== false || strpos($key, '_pattern') !== false) {
+            $sanitized[$key] = sanitize_textarea_field($value);
+        } else {
+            $sanitized[$key] = sanitize_text_field($value);
+        }
+    }
+
+    return $sanitized;
+}
 
     public function print_general_section_info() {
         print __( 'تنظیمات عمومی افزونه ورود و عضویت پیامکی را از این بخش مدیریت کنید.', 'yakutlogin' );
@@ -500,113 +554,6 @@ public function enqueue_scripts( $hook ) {
             echo '<p class="description">' . esc_html($args['desc']) . '</p>';
         }
     }
-    /**
-     * AJAX handler to get WebAuthn registration options from the server.
-     * This creates the challenge that the browser will sign.
-     */
-    public function ajax_get_registration_options() {
-        // First, check for security nonce.
-        check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
-
-        // Ensure the WebAuthn handler is available.
-        if (!isset($this->webauthn_handler)) {
-            wp_send_json_error(['message' => 'WebAuthn handler not available.']);
-            return;
-        }
-
-        $user = wp_get_current_user();
-        if (!$user || $user->ID === 0) {
-            wp_send_json_error(['message' => 'User not logged in.']);
-            return;
-        }
-
-        // Required entities for the WebAuthn library.
-        $user_entity = new Webauthn\PublicKeyCredentialUserEntity(
-            $user->user_login,
-            (string) $user->ID,
-            $user->display_name
-        );
-
-        $rp_entity = new Webauthn\PublicKeyCredentialRpEntity(
-            get_bloginfo('name'),
-            wp_parse_url(home_url(), PHP_URL_HOST)
-        );
-
-        // Generate a random challenge.
-        try {
-            $challenge = random_bytes(32);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => 'Could not generate a secure challenge.']);
-            return;
-        }
-
-        // Create the options object.
-        $creation_options = new Webauthn\PublicKeyCredentialCreationOptions(
-            $rp_entity,
-            $user_entity,
-            $challenge,
-            [] // You can add parameters here if needed in the future
-        );
-
-        // Store the options in a temporary transient to verify against them in the next step.
-        set_transient('webauthn_creation_options_for_user_' . $user->ID, $creation_options, MINUTE_IN_SECONDS * 5);
-
-        // Send the options back to the JavaScript frontend.
-        wp_send_json_success($creation_options);
-    }
-    /**
-     * AJAX handler to verify and save the WebAuthn credential from the browser.
-     */
-    public function ajax_verify_registration() {
-        // We don't need a nonce check here because the verification process
-        // relies on the challenge stored in the transient, which is secure.
-
-        check_ajax_referer('yakutlogin_verify_registration_nonce');
-        
-        if (!isset($this->webauthn_handler)) {
-            wp_send_json_error(['message' => 'WebAuthn handler not available.']);
-            return;
-        }
-
-        $user = wp_get_current_user();
-        if (!$user || $user->ID === 0) {
-            wp_send_json_error(['message' => 'User not logged in.']);
-            return;
-        }
-
-        try {
-            // Retrieve the creation options we stored temporarily.
-            $creation_options = get_transient('webauthn_creation_options_for_user_' . $user->ID);
-            if ($creation_options === false) {
-                throw new Exception('Challenge timed out or not found. Please try again.');
-            }
-
-            // Get the data sent from the browser.
-            $credential_data = file_get_contents('php://input');
-            if ($credential_data === false) {
-                throw new Exception('Could not read request body.');
-            }
-
-            // The WebAuthn library handles the complex verification process.
-            $publicKeyCredentialSource = Webauthn\AuthenticatorAttestationResponseValidator::check(
-                Webauthn\AuthenticatorAttestationResponse::createFromJSON($credential_data),
-                $creation_options,
-                (new Webauthn\CeremonyStep\HostTopOriginValidator(get_home_url()))
-            );
-
-            // If verification is successful, save the new credential source.
-            $this->webauthn_handler->saveCredentialSource($publicKeyCredentialSource);
-
-            // Clean up the transient.
-            delete_transient('webauthn_creation_options_for_user_' . $user->ID);
-
-            wp_send_json_success(['message' => 'دستگاه شما با موفقیت ثبت شد!']);
-
-        } catch (Throwable $e) {
-            // If anything goes wrong, send back a detailed error message.
-            wp_send_json_error(['message' => 'Verification failed: ' . $e->getMessage()]);
-        }
-    }
 
     public function ajax_cleanup_data() {
     check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
@@ -616,7 +563,6 @@ public function enqueue_scripts( $hook ) {
 
     // ۱. حذف جداول
     global $wpdb;
-    $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}slr_webauthn_credentials");
 
     // ۲. حذف گزینه‌ها
     delete_option('slr_plugin_options');

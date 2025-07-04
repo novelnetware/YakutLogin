@@ -2,121 +2,187 @@ jQuery(document).ready(function($) {
     'use strict';
 
     /**
-     * ----------------------------------------------------------------
-     * WebAuthn Helper Functions
-     * (These are correct and do not need changes)
-     * ----------------------------------------------------------------
+     * ================================================================
+     * Captcha Rendering Functions
+     * ================================================================
      */
-    function bufferDecode(value) {
-        return Uint8Array.from(atob(value.replace(/_/g, '/').replace(/-/g, '+')), c => c.charCodeAt(0));
+    function slrRenderReCaptcha() {
+        document.querySelectorAll('.g-recaptcha').forEach(function(el) {
+            if (el.innerHTML.trim() === '') {
+                grecaptcha.render(el, {
+                    'sitekey': el.getAttribute('data-sitekey')
+                });
+            }
+        });
     }
 
-    function bufferEncode(value) {
-        return btoa(String.fromCharCode.apply(null, new Uint8Array(value)))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    function slrRenderTurnstile() {
+        document.querySelectorAll('.cf-turnstile').forEach(function(el) {
+            if (el.innerHTML.trim() === '') {
+                turnstile.render(el, {
+                    'sitekey': el.getAttribute('data-sitekey')
+                });
+            }
+        });
     }
 
-    function prepareOptionsForBrowser(options) {
-        if (options.challenge) options.challenge = bufferDecode(options.challenge);
-        if (options.user && options.user.id) options.user.id = bufferDecode(options.user.id);
-        if (options.allowCredentials) {
-            options.allowCredentials.forEach(cred => {
-                if (cred.id) cred.id = bufferDecode(cred.id);
-            });
-        }
-        return options;
-    }
-
-    function prepareCredentialForServer(credential) {
-        return {
-            id: credential.id,
-            rawId: bufferEncode(credential.rawId),
-            type: credential.type,
-            response: {
-                authenticatorData: bufferEncode(credential.response.authenticatorData),
-                clientDataJSON: bufferEncode(credential.response.clientDataJSON),
-                signature: bufferEncode(credential.response.signature),
-                userHandle: credential.response.userHandle ? bufferEncode(credential.response.userHandle) : null,
-            },
-        };
-    }
-
+    window.slrRenderReCaptcha = slrRenderReCaptcha;
+    window.slrRenderTurnstile = slrRenderTurnstile;
     /**
-     * ----------------------------------------------------------------
+     * ================================================================
      * Main Form Initializer
-     * Attaches all event listeners to a specific form instance.
-     * ----------------------------------------------------------------
+     * ================================================================
      */
     function initializeForm(formContainer) {
         const $container = $(formContainer);
         const $form = $container.find('.slr-otp-form');
         if ($form.length === 0) return;
 
-        // --- بخش اصلاح شده ---
-        let identifierValue = ''; // متغیری برای ذخیره مقدار فیلد اصلی
+        let identifierValue = '';
+        let timerInterval; 
 
-        // Find all elements within this specific form instance
-        const $sendOtpBtn = $form.find('.slr-send-otp-button');
-        const $submitBtn = $form.find('.slr-submit-button');
-        const $webAuthnBtn = $form.find('.slr-webauthn-login-button');
-        const $identifierField = $form.find('.slr-identifier-input');
-        const $messageArea = $form.find('.slr-message-area');
+        // ذخیره کردن المان‌ها در متغیرها
+    const $sendOtpBtn = $form.find('.slr-send-otp-button');
+    const $submitBtn = $form.find('.slr-submit-button');
+    const $identifierField = $form.find('.slr-identifier-input');
+    const $messageArea = $form.find('.slr-message-area');
+    const $otpInput = $form.find('.slr-otp-input');
+    
+    // بخش‌های مختلف فرم
+    const $identifierRow = $form.find('.slr-identifier-row');
+    const $otpRow = $form.find('.slr-otp-row');
+    const $submitRow = $form.find('.slr-submit-row');
+    const $captchaRow = $form.find('.slr-captcha-row');
+    const $orDivider = $form.find('.slr-or-divider');
+    const $socialRow = $form.find('.slr-social-login-row');
+    
+    // المان‌های جدید
+    const $timerDisplay = $form.find('.slr-timer');
+    const $countdownSpan = $form.find('.slr-countdown');
+    const $resendBtn = $form.find('.slr-resend-otp-button');
+    const $backBtn = $form.find('.slr-back-button');
 
-        // Form sections
-        const $sendOtpRow = $form.find('.slr-send-otp-row');
-        const $otpRow = $form.find('.slr-otp-row');
-        const $submitRow = $form.find('.slr-submit-row');
-        const $captchaRow = $form.find('.slr-captcha-row');
+        // تابع نمایش پیام
+    function displayMessage(message, type = 'error') {
+        $messageArea.text(message).removeClass('slr-success slr-error slr-info').addClass(`slr-${type}`).slideDown();
+    }
+
+    // تابع ریست کردن کامل فرم
+    function resetForm() {
+        // نمایش بخش‌های اولیه
+        $identifierRow.slideDown();
+        $captchaRow.slideDown();
+        $orDivider.slideDown();
+        $socialRow.slideDown();
         
-        // Helper to display messages
-        function displayMessage(message, type = 'error') {
-            $messageArea.text(message).removeClass('slr-success slr-error slr-info').addClass(`slr-${type}`).slideDown();
+        // پنهان کردن بخش‌های OTP
+        $otpRow.slideUp();
+        $submitRow.slideUp();
+        
+        // فعال‌سازی و ریست کردن فیلدها و دکمه‌ها
+        $identifierField.val('').prop('readonly', false).focus();
+        $otpInput.val('');
+        $sendOtpBtn.prop('disabled', false);
+        displayMessage('', 'info'); // پاک کردن پیام
+        
+        // ریست کردن کپچا
+        if (typeof grecaptcha !== 'undefined' && grecaptcha.reset) grecaptcha.reset();
+        if (typeof turnstile !== 'undefined' && turnstile.reset) turnstile.reset();
+
+        // متوقف کردن و پنهان کردن تایمر
+        clearInterval(timerInterval);
+        $timerDisplay.hide();
+        $resendBtn.hide();
+    }
+
+    // تابع شروع تایمر
+    function startTimer(duration = 60) {
+        let timer = duration;
+        $countdownSpan.text(timer);
+        $timerDisplay.show();
+        $resendBtn.hide();
+        $sendOtpBtn.prop('disabled', true); // غیرفعال کردن دکمه ارسال اصلی
+
+        timerInterval = setInterval(function() {
+            timer--;
+            $countdownSpan.text(timer);
+            if (timer <= 0) {
+                clearInterval(timerInterval);
+                $timerDisplay.hide();
+                $resendBtn.show().prop('disabled', false); // نمایش دکمه ارسال مجدد
+            }
+        }, 1000);
+    }
+    
+    // رویداد کلیک دکمه بازگشت
+    $backBtn.on('click', function(e) {
+        e.preventDefault();
+        resetForm();
+    });
+
+    // رویداد کلیک برای ارسال مجدد (که همان تابع ارسال کد را فراخوانی می‌کند)
+    $resendBtn.on('click', function(e){
+        e.preventDefault();
+        $(this).prop('disabled', true);
+        $sendOtpBtn.trigger('click');
+    });
+
+
+
+        // رویداد کلیک دکمه اصلی "ارسال کد تایید"
+    $sendOtpBtn.on('click', async function(e) {
+        e.preventDefault();
+        identifierValue = $identifierField.val();
+        if (!identifierValue) {
+            displayMessage('لطفا ایمیل یا شماره تلفن خود را وارد کنید.', 'error');
+            return;
         }
 
-        // 1. "Send Verification Code" Button Click Handler
-        $sendOtpBtn.on('click', async function(e) {
-            e.preventDefault();
+        const originalButtonText = $(this).text(); // فقط متن را می‌گیریم
+        $(this).prop('disabled', true).html(slr_public_data.text_sending_otp);
+        displayMessage('در حال ارسال کد...', 'info');
 
-            identifierValue = $identifierField.val(); // مقدار را در متغیر ذخیره می‌کنیم
-            if (!identifierValue) {
-                displayMessage('لطفا ایمیل یا شماره تلفن خود را وارد کنید.', 'error');
-                return;
+        const formData = new URLSearchParams();
+        formData.append('action', 'slr_send_otp');
+        formData.append('security', slr_public_data.send_otp_nonce);
+        formData.append('identifier', identifierValue);
+
+        // **رفع مشکل کپچا**: ارسال توکن برای هر دو سرویس
+        const recaptchaToken = $form.find('[name="g-recaptcha-response"]').val();
+        if (recaptchaToken) formData.append('g-recaptcha-response', recaptchaToken);
+        
+        const turnstileToken = $form.find('[name="cf-turnstile-response"]').val();
+        if (turnstileToken) formData.append('cf-turnstile-response', turnstileToken);
+
+        try {
+            const response = await fetch(slr_public_data.ajax_url, { method: 'POST', body: formData });
+            const result = await response.json();
+            if (result.success) {
+                displayMessage(result.data.message, 'success');
+                // **قابلیت جدید**: پنهان کردن المان‌های اضافی
+                $identifierRow.slideUp();
+                $captchaRow.slideUp();
+                $orDivider.slideUp();
+                $socialRow.slideUp();
+
+                // نمایش بخش OTP و فوکوس روی فیلد
+                $otpRow.slideDown().find('input').focus();
+                $submitRow.slideDown();
+                $identifierField.prop('readonly', true);
+                
+                // شروع تایمر
+                startTimer(60); 
+            } else {
+                throw new Error(result.data.message || 'خطای ناشناخته رخ داد.');
             }
+        } catch (error) {
+            displayMessage(error.message, 'error');
+            $(this).prop('disabled', false).html(originalButtonText);
+            resetForm(); // ریست کردن فرم در صورت بروز خطا
+        }
+    });
 
-            const originalButtonText = $(this).html();
-            $(this).prop('disabled', true).html(slr_public_data.text_sending_otp);
-            displayMessage('در حال ارسال کد...', 'info');
-
-            const formData = new URLSearchParams();
-            formData.append('action', 'slr_send_otp');
-            formData.append('security', slr_public_data.send_otp_nonce);
-            formData.append('identifier', $identifierField.val());
-            
-            const recaptchaToken = $form.find('[name="g-recaptcha-response"]').val();
-            if (recaptchaToken) formData.append('g-recaptcha-response', recaptchaToken);
-
-            try {
-                const response = await fetch(slr_public_data.ajax_url, { method: 'POST', body: formData });
-                const result = await response.json();
-
-                if (result.success) {
-                    displayMessage(result.data.message, 'success');
-                    $sendOtpRow.slideUp();
-                    $captchaRow.slideUp();
-                    $otpRow.slideDown();
-                    $submitRow.slideDown();
-                    $identifierField.prop('readonly', true);
-                } else {
-                    throw new Error(result.data.message || 'خطای ناشناخته رخ داد.');
-                }
-            } catch (error) {
-                displayMessage(error.message, 'error');
-                $(this).prop('disabled', false).html(originalButtonText);
-                if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
-            }
-        });
-
-        // 2. Main Form Submission (Login/Register with OTP)
+        // --- OTP Form Submit Handler ---
         $form.on('submit', async function(e) {
             e.preventDefault();
             const originalButtonText = $submitBtn.html();
@@ -124,17 +190,12 @@ jQuery(document).ready(function($) {
             displayMessage('در حال پردازش...', 'info');
 
             const formData = new URLSearchParams(new FormData(this));
-
-            // --- بخش اصلاح شده ---
-            // مقدار identifier را از متغیری که قبلا ذخیره کرده‌ایم می‌خوانیم
-            formData.set('slr_identifier', identifierValue); 
-
+            formData.set('slr_identifier', identifierValue);
             formData.append('action', 'slr_process_login_register_otp');
 
             try {
                 const response = await fetch(slr_public_data.ajax_url, { method: 'POST', body: formData });
                 const result = await response.json();
-
                 if (result.success) {
                     displayMessage(result.data.message, 'success');
                     if (result.data.redirect_url) {
@@ -148,73 +209,12 @@ jQuery(document).ready(function($) {
                 $submitBtn.prop('disabled', false).html(originalButtonText);
             }
         });
-        
-        // 3. WebAuthn Login Button Click Handler
-        if (window.PublicKeyCredential && $webAuthnBtn.length) {
-            $webAuthnBtn.show(); // Show if supported
-            $webAuthnBtn.on('click', async function(e) {
-                e.preventDefault();
-                const identifier = $identifierField.val();
-                if (!identifier) {
-                    displayMessage('برای ورود با اثر انگشت، ابتدا ایمیل یا شماره تلفن خود را وارد کنید.', 'error');
-                    return;
-                }
-
-                const originalButtonHTML = $(this).html();
-                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-                displayMessage('لطفا هویت خود را با دستگاه تایید کنید...', 'info');
-                
-                try {
-                    // Get options from server
-                    const optionsResponse = await fetch(slr_public_data.ajax_url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `action=yakutlogin_get_authentication_options&identifier=${identifier}&nonce=${slr_public_data.send_otp_nonce}`
-                    });
-                    const optionsJSON = await optionsResponse.json();
-                    if (!optionsJSON.success) throw new Error(optionsJSON.data.message);
-
-                    // Call browser API
-                    const credentialOptions = prepareOptionsForBrowser(optionsJSON.data);
-                    const assertion = await navigator.credentials.get({ publicKey: credentialOptions });
-                    
-                    // Verify with server
-                    const verificationResponse = await fetch(slr_public_data.ajax_url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'yakutlogin_verify_authentication',
-                            nonce: slr_public_data.send_otp_nonce,
-                            identifier: identifier,
-                            ...prepareCredentialForServer(assertion)
-                        })
-                    });
-                    const verificationResult = await verificationResponse.json();
-
-                    if (verificationResult.success) {
-                        displayMessage(verificationResult.data.message, 'success');
-                        if (verificationResult.data.redirect_url) {
-                            window.location.href = verificationResult.data.redirect_url;
-                        }
-                    } else {
-                        throw new Error(verificationResult.data.message);
-                    }
-                } catch (err) {
-                    displayMessage(err.message || 'ورود با خطا مواجه شد.', 'error');
-                    $(this).prop('disabled', false).html(originalButtonHTML);
-                }
-            });
-        }
-    }
-
     /**
-     * ----------------------------------------------------------------
+     * ================================================================
      * Execution
-     * Find all forms on the page and initialize them.
-     * ----------------------------------------------------------------
+     * ================================================================
      */
     $('.slr-otp-form-container').each(function() {
         initializeForm(this);
     });
-
 });

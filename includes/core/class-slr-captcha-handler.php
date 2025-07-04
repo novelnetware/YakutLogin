@@ -2,7 +2,7 @@
 /**
  * Handles CAPTCHA Verification.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.3
  *
  * @package    Sms_Login_Register

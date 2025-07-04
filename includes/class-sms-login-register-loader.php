@@ -3,7 +3,7 @@
 /**
  * Register all actions and filters for the plugin
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.0
  *
  * @package    Sms_Login_Register
@@ -19,7 +19,7 @@
  *
  * @package    Sms_Login_Register
  * @subpackage Sms_Login_Register/includes
- * @author     Your Name <email@example.com>
+ * @author     Yakut Co <info@yakut.ir>
  */
 class Sms_Login_Register_Loader {
 

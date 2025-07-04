@@ -52,11 +52,19 @@ class SLR_Default_Theme implements SLR_Theme {
         </div>
 
         <div class="slr-form-row slr-otp-row" style="display: none;">
-            <?php if ($args['show_labels']): ?>
-                <label for="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>">کد یکبار مصرف</label>
-            <?php endif; ?>
-            <input type="text" name="slr_otp_code" class="slr-input slr-otp-input" placeholder="کد تایید" autocomplete="off" />
+    <?php if ($args['show_labels']): ?>
+        <label for="slr_otp_code_<?php echo esc_attr($args['form_id']); ?>">کد یکبار مصرف</label>
+    <?php endif; ?>
+    <input type="text" name="slr_otp_code" class="slr-input slr-otp-input" placeholder="کد تایید" autocomplete="off" />
+    
+    <div class="slr-otp-actions">
+        <div class="slr-timer">
+            ارسال مجدد تا <span class="slr-countdown">60</span> ثانیه دیگر
         </div>
+        <a href="#" class="slr-resend-otp-button" style="display:none;">ارسال مجدد کد</a>
+        <a href="#" class="slr-back-button">ویرایش شماره / ایمیل</a>
+    </div>
+    </div>
         
         <?php if ($args['captcha_type'] !== 'none' && !empty($args['captcha_site_key'])): ?>
             <div class="slr-form-row slr-captcha-row">
@@ -74,7 +82,7 @@ class SLR_Default_Theme implements SLR_Theme {
             </button>
         </div>
         
-        <?php if ($args['google_login_enabled'] || $args['webauthn_enabled']): ?>
+        <?php if ($args['google_login_enabled']): ?>
             <div class="slr-or-divider">یا</div>
         <?php endif; ?>
 
@@ -83,12 +91,6 @@ class SLR_Default_Theme implements SLR_Theme {
                 <a href="<?php echo esc_url($args['google_login_url']); ?>" class="slr-button slr-google-button">
                     <i class="fab fa-google"></i> <span><?php echo esc_html($args['button_texts']['google']); ?></span>
                 </a>
-            <?php endif; ?>
-
-            <?php if ($args['webauthn_enabled']): ?>
-                <button type="button" class="slr-button slr-webauthn-login-button" style="display:none;">
-                    <i class="fas fa-fingerprint"></i> <span><?php echo esc_html($args['button_texts']['webauthn']); ?></span>
-                </button>
             <?php endif; ?>
         </div>
 

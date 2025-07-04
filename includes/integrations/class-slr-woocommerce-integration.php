@@ -2,7 +2,7 @@
 /**
  * Handles WooCommerce Integration for OTP Login/Registration on Checkout.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.4
  *
  * @package    Sms_Login_Register

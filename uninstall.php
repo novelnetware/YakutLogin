@@ -6,7 +6,7 @@
  * options, custom database tables, and other data that were
  * created by this plugin.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.0
  *
  * @package    Sms_Login_Register

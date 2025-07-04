@@ -2,7 +2,7 @@
 /**
  * The file that defines the core plugin class
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.0
  * @package    Sms_Login_Register
  * @subpackage Sms_Login_Register/includes
@@ -50,12 +50,6 @@ class Sms_Login_Register {
     protected $theme_manager;
 
     /**
-     * The WebAuthn handler instance.
-     * @var SLR_WebAuthn_Handler
-     */
-    protected $webauthn_handler;
-
-    /**
      * The SMS Gateway manager.
      * @var SLR_Gateway_Manager
      */
@@ -96,7 +90,6 @@ class Sms_Login_Register {
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-theme-manager.php';
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-gateway-manager.php';
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-captcha-handler.php';
-        require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-webauthn-handler.php';
 
         // Admin and Public classes
         require_once SLR_PLUGIN_DIR . 'admin/class-sms-login-register-admin.php';
@@ -115,11 +108,9 @@ class Sms_Login_Register {
     private function instantiate_handlers() {
         $this->loader           = new Sms_Login_Register_Loader();
         $this->theme_manager    = SLR_Theme_Manager::get_instance();
-        $this->webauthn_handler = new SLR_WebAuthn_Handler();
         $this->gateway_manager  = new SLR_Gateway_Manager();
 
         // Instantiate admin and public controllers, passing necessary dependencies
-        $this->admin  = new Sms_Login_Register_Admin($this->get_plugin_name(), $this->get_version(), $this->webauthn_handler);
         $this->public = new Sms_Login_Register_Public($this->get_plugin_name(), $this->get_version(), $this->theme_manager);
     }
     
@@ -148,10 +139,6 @@ class Sms_Login_Register {
         // Register AJAX hooks and point them to the correct handler ($plugin_admin)
         $this->loader->add_action('wp_ajax_yakutlogin_save_settings', $plugin_admin, 'ajax_save_settings');
         $this->loader->add_action('wp_ajax_yakutlogin_get_gateway_fields', $plugin_admin, 'ajax_get_gateway_fields');
-
-        // WebAuthn AJAX hooks for logged-in users in admin
-        $this->loader->add_action('wp_ajax_yakutlogin_get_registration_options', $plugin_admin, 'ajax_get_registration_options');
-        $this->loader->add_action( 'wp_ajax_yakutlogin_verify_registration', $plugin_admin, 'ajax_verify_registration' );
     }
 
     /**
@@ -170,10 +157,6 @@ class Sms_Login_Register {
         // AJAX handler for processing the generic OTP form
         $this->loader->add_action('wp_ajax_nopriv_slr_process_login_register_otp', $plugin_public, 'ajax_process_login_register_otp');
         $this->loader->add_action('wp_ajax_slr_process_login_register_otp', $plugin_public, 'ajax_process_login_register_otp');
-        
-        // WebAuthn AJAX hooks for guests (login)
-        $this->loader->add_action('wp_ajax_nopriv_yakutlogin_get_authentication_options', $plugin_public, 'ajax_get_authentication_options');
-        $this->loader->add_action('wp_ajax_nopriv_yakutlogin_verify_authentication', $plugin_public, 'ajax_verify_authentication');
 
         // Hooks for wp-login.php forms
         $this->loader->add_action('login_form', $plugin_public, 'add_otp_fields_to_login_form');
@@ -191,8 +174,6 @@ class Sms_Login_Register {
 
         // Register Shortcode
         add_shortcode('slr_otp_form', [$plugin_public, 'render_slr_otp_form_shortcode']);
-
-        add_shortcode('yakut_webauthn_register_button', [$plugin_public, 'render_webauthn_register_button']);
     }
     
     /**

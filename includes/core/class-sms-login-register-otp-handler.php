@@ -2,7 +2,7 @@
 /**
  * Handles OTP Generation, Storage, and Verification.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.0
  *
  * @package    Sms_Login_Register

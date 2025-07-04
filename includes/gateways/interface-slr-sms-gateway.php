@@ -2,7 +2,7 @@
 /**
  * Interface for SMS Gateway services.
  *
- * @link       https://example.com/
+ * @link       https://yakut.ir/
  * @since      1.0.2
  *
  * @package    Sms_Login_Register

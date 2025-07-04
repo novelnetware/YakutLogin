@@ -3,7 +3,7 @@
  * Plugin Name:       YakutLogin
  * Plugin URI:        https://yakut.ir/plugins/yakutlogin/
  * Description:       Enables SMS-based login and registration with OTP, email OTP, Google Login, and CAPTCHA support.
- * Version:           1.9.1
+ * Version:           1.1.3
  * Author:            Yakut
  * Author URI:        https://yakut.ir/
  * License:           GPL v2 or later
@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define constants
  */
-define( 'SLR_PLUGIN_VERSION', '1.9.1' ); // SLR for SMS Login Register
+define( 'SLR_PLUGIN_VERSION', '1.1.3' ); // SLR for SMS Login Register
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 define( 'SLR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SLR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,26 @@ define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 // Constants for Elementor widget temporary instantiation
 define( 'SLR_PLUGIN_NAME_FOR_INSTANCE', 'sms-login-register' );
 define( 'SLR_PLUGIN_VERSION_FOR_INSTANCE', SLR_PLUGIN_VERSION );
+
+/**
+ * =================================================================
+ * Global Logger Function
+ * =================================================================
+ * این تابع باید در اینجا و قبل از همه فایل‌ها تعریف شود تا در همه جا در دسترس باشد.
+ */
+if ( ! function_exists('slr_log') ) {
+    function slr_log( $message ) {
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG === true ) {
+            $log_file = SLR_PLUGIN_DIR . 'debug.log';
+            $timestamp = date("Y-m-d H:i:s");
+            if ( is_array( $message ) || is_object( $message ) ) {
+                $message = print_r( $message, true );
+            }
+            $log_entry = "[{$timestamp}] - {$message}" . PHP_EOL;
+            file_put_contents( $log_file, $log_entry, FILE_APPEND );
+        }
+    }
+}
 
 
 

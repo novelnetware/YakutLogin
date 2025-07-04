@@ -1,147 +1,136 @@
-=== SMS Login & Register ===
-Contributors: (your-wordpress-org-username), yourname
-Donate link: https://example.com/donate/
-Tags: sms login, otp login, sms registration, otp, mobile login, google login, recaptcha, turnstile, woocommerce login, elementor login
-Requires at least: 5.5
-Tested up to: 6.5  // یا آخرین نسخه وردپرس در زمان انتشار
+=== YakutLogin ===
+Contributors: yakut.ir
+Donate link: https://yakut.ir/donate
+Tags: sms login, otp login, mobile login, passwordless, webauthn, biometric login, google login, woocommerce login, sms registration, otp, recaptcha, turnstile, elementor login, persian, farsi, iran
+Requires at least: 5.8
+Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.5.0 //نسخه‌ای که پایدار می‌دانید و در حال انتشار آن هستید
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A comprehensive WordPress plugin for SMS & Email OTP based login/registration, Google Login, CAPTCHA integration, and customizable forms via Shortcode & Elementor.
+افزونه ورود و عضویت پیشرفته وردپرس با کد یکبارمصرف (پیامک و ایمیل)، ورود بدون رمز (اثرانگشت و چهره)، ورود با گوگل و ووکامرس.
 
 == Description ==
 
-The "SMS Login & Register" plugin enhances your WordPress site's authentication system by providing multiple ways for users to log in and register. It supports:
+**یاقوت لاگین** یک راهکار جامع و مدرن برای متحول کردن سیستم احراز هویت وب‌سایت وردپرسی شماست. این افزونه با ارائه قابلیت‌های امنیتی و کاربرپسند، تجربه ورود و عضویت کاربران را به سطح جدیدی ارتقا می‌دهد.
 
-* **OTP (One-Time Password) via SMS:** Integrate with various SMS gateways (Kavenegar included as an example) to send OTPs to users' mobile numbers.
-* **OTP via Email:** As an alternative or fallback, send OTPs to users' email addresses.
-* **Google Login:** Allow users to quickly log in or register using their Google accounts (OAuth 2.0).
-* **CAPTCHA Protection:** Secure your forms using Google reCAPTCHA v2 ("I'm not a robot") or Cloudflare Turnstile.
-* **Customizable Forms:**
-    * **Shortcode:** Display the login/registration form anywhere using the `[slr_otp_form]` shortcode with various attributes for layout and theming.
-    * **Elementor Widget:** A dedicated Elementor widget to drag, drop, and extensively customize the form's appearance and layout.
-* **WooCommerce Integration:** Option to replace the default WooCommerce login and registration prompts on the checkout page with the OTP system.
-* **Theme & Layout Options:** Provides basic themes and layout options for the forms.
-* **Iranian Phone Number Support:** Includes basic normalization for Iranian phone numbers.
+✨ **ویژگی‌های کلیدی:**
 
-This plugin aims to provide a secure, flexible, and user-friendly authentication experience for your WordPress site.
+* **ورود و عضویت با کد یکبارمصرف (OTP):**
+    * **ارسال پیامک (SMS):** با پشتیبانی از چندین درگاه پیامک محبوب ایرانی (کاوه‌نگار، ملی‌پیامک و...) و قابلیت **درگاه پشتیبان (Fallback)** برای اطمینان از ارسال موفق پیامک.
+    * **ارسال ایمیل:** ارسال کد تایید به ایمیل کاربران به عنوان یک روش جایگزین یا اصلی.
+
+* **ورود بدون رمز (Passwordless) با WebAuthn:**
+    * به کاربران اجازه دهید با استفاده از روش‌های بیومتریک مانند **اثر انگشت** (در موبایل) یا **تشخیص چهره** (مانند Windows Hello) به سادگی و با امنیت بالا وارد حساب کاربری خود شوند.
+
+* **ورود با گوگل (Google Login):**
+    * یکپارچه‌سازی کامل با سیستم OAuth 2.0 گوگل برای ورود و ثبت‌نام سریع و آسان با یک کلیک.
+
+* **حفاظت امنیتی با کپچا:**
+    * فرم‌های خود را با پشتیبانی از **Google reCAPTCHA v2** و **Cloudflare Turnstile** در برابر ربات‌ها و اسپم‌ها ایمن کنید.
+
+* **موتور پوسته‌بندی قدرتمند و داینامیک:**
+    * با یک سیستم پوسته‌بندی پیشرفته، بی‌نهایت فرم با ظاهر و حتی ساختار HTML کاملاً متفاوت طراحی کنید. هر پوسته می‌تواند CSS، JS و تنظیمات المنتور اختصاصی خود را داشته باشد.
+
+* **فرم‌های کاملاً قابل سفارشی‌سازی:**
+    * **ویجت‌های المنتور:**
+        * ویجت قدرتمند **فرم ورود** با ده‌ها گزینه برای سفارشی‌سازی کامل ظاهر و چیدمان.
+        * ویجت جدید **دکمه ثبت دستگاه (WebAuthn)** برای قرار دادن دکمه ثبت اثر انگشت در هر جای سایت.
+    * **شورت‌کد (Shortcode):** با استفاده از شورت‌کدهای `[slr_otp_form]` و `[yakut_webauthn_register_button]` فرم و دکمه‌ها را در هر قسمتی از سایت نمایش دهید.
+
+* **یکپارچه‌سازی با ووکامرس:**
+    * فرم ورود و ثبت‌نام پیش‌فرض ووکامرس در صفحه تسویه‌حساب را با سیستم ورود پیامکی یاقوت لاگین جایگزین کنید تا تجربه خریدی روان‌تر برای مشتریان خود فراهم آورید.
+
+* **پنل تنظیمات مدرن و ایجکس:**
+    * یک پنل مدیریت زیبا، سریع و کاملاً واکنش‌گرا که مدیریت تنظیمات افزونه را لذت‌بخش می‌کند.
+
+یاقوت لاگین با تمرکز بر امنیت، انعطاف‌پذیری و تجربه کاربری، بهترین انتخاب برای مدیریت سیستم ورود و عضویت سایت شماست.
+
 
 == Installation ==
 
-1.  Upload the `sms-login-register` folder to the `/wp-content/plugins/` directory.
-    OR
-    Upload the plugin zip file through the 'Plugins' > 'Add New' > 'Upload Plugin' screen in your WordPress admin area.
-2.  Activate the plugin through the 'Plugins' screen in WordPress.
-3.  Navigate to "SMS Login" (or your chosen menu name) in the WordPress admin menu to configure the settings:
-    * Select and configure your SMS Gateway (e.g., Kavenegar API key).
-    * Set up Email OTP templates.
-    * Configure Google Login (Client ID, Client Secret from Google Cloud Console).
-    * Set up CAPTCHA (reCAPTCHA or Turnstile Site Key and Secret Key).
-    * Enable WooCommerce checkout integration if needed.
-4.  Use the `[slr_otp_form]` shortcode in your posts/pages or the "SMS/OTP Login Form" widget in Elementor to display the login/registration form.
+1.  پوشه `YakutLogin` را در مسیر `/wp-content/plugins/` آپلود کنید.
+    یا
+    فایل فشرده (zip) افزونه را از طریق منوی 'افزونه‌ها' > 'افزودن' > 'بارگذاری افزونه' در پنل مدیریت وردپرس خود آپلود کنید.
+2.  افزونه را از طریق صفحه 'افزونه‌ها' در وردپرس فعال نمایید.
+3.  به منوی **"یاقوت لاگین"** در پیشخوان وردپرس بروید تا تنظیمات افزونه را پیکربندی کنید:
+    * **تنظیمات عمومی:** فعال‌سازی ورود با ایمیل و ویرایش قالب ایمیل را انجام دهید.
+    * **درگاه پیامک:** درگاه اصلی و پشتیبان خود را انتخاب کرده و اطلاعات API مربوطه را وارد کنید.
+    * **ورود با گوگل:** کلیدهای Client ID و Client Secret خود را از کنسول گوگل دریافت و وارد کنید.
+    * **تنظیمات کپچا:** سرویس کپچای مورد نظر خود را انتخاب و کلیدهای آن را وارد نمایید.
+    * **ووکامرس:** یکپارچه‌سازی با صفحه تسویه‌حساب را فعال کنید.
+    * **امکانات حرفه‌ای:** قابلیت ورود بدون رمز (WebAuthn) را فعال کنید.
+4.  برای نمایش فرم، از شورت‌کد `[slr_otp_form]` یا ویجت **"فرم ورود و عضویت یاقوت"** در ویرایشگر المنتور استفاده کنید.
+5.  برای نمایش دکمه ثبت دستگاه، از شورت‌کد `[yakut_webauthn_register_button]` یا ویجت **"دکمه ثبت دستگاه (WebAuthn)"** در صفحاتی که کاربر وارد شده است (مانند پروفایل کاربری) استفاده کنید.
 
 == Frequently Asked Questions ==
 
-= How do I get API keys for SMS Gateways? =
+= چگونه کلیدهای API برای درگاه پیامک را دریافت کنم؟ =
 
-You need to register an account with your chosen SMS provider (e.g., Kavenegar.com). They will provide you with an API key and potentially a sender line number or template name for OTPs. Enter these details in the plugin's settings page.
+شما باید در وب‌سایت سرویس‌دهنده پیامک خود (مانند Kavenegar.com) یک حساب کاربری ایجاد کنید. پس از ورود به پنل کاربری، کلید API (و در صورت نیاز، شماره خط یا نام قالب) به شما داده می‌شود که باید آن را در بخش تنظیمات درگاه پیامک افزونه وارد کنید.
 
-= How do I set up Google Login? =
+= چگونه ورود با گوگل را راه‌اندازی کنم؟ =
 
-1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2.  Create a new project or select an existing one.
-3.  Go to "APIs & Services" > "Credentials".
-4.  Click "Create Credentials" > "OAuth client ID". Select "Web application".
-5.  Under "Authorized redirect URIs", add the URI displayed in the plugin's Google Login settings (e.g., `https://yourdomain.com/?slr_google_auth_callback=1`).
-6.  Copy the generated "Client ID" and "Client Secret" and paste them into the plugin's settings.
-7.  Ensure the "Google People API" (or similar providing email/profile scope) is enabled for your project in the "Library" section.
+1.  به [کنسول ابری گوگل (Google Cloud Console)](https://console.cloud.google.com/) بروید.
+2.  یک پروژه جدید بسازید یا یکی از پروژه‌های موجود را انتخاب کنید.
+3.  به بخش "APIs & Services" > "Credentials" بروید.
+4.  روی "Create Credentials" > "OAuth client ID" کلیک کرده و "Web application" را انتخاب کنید.
+5.  در بخش "Authorized redirect URIs"، آدرسی که در تنظیمات "ورود با گوگل" افزونه نمایش داده شده است را وارد کنید (مثلا: `https://yourdomain.com/?slr_google_auth_callback=1`).
+6.  "Client ID" و "Client Secret" تولید شده را کپی و در تنظیمات افزونه جای‌گذاری کنید.
+7.  مطمئن شوید که "Google People API" برای پروژه شما در بخش "Library" فعال باشد.
 
-= How do I set up CAPTCHA? =
+= چگونه ورود بدون رمز (اثر انگشت) را برای حساب کاربری خودم فعال کنم؟ =
 
-1.  **For Google reCAPTCHA v2 ("I'm not a robot"):**
-    * Go to the [Google reCAPTCHA admin console](https://www.google.com/recaptcha/admin/).
-    * Register your site, choosing "reCAPTCHA v2" and then "I'm not a robot" Checkbox.
-    * Add your domain(s).
-    * Copy the "Site Key" and "Secret Key" into the plugin's CAPTCHA settings.
-2.  **For Cloudflare Turnstile:**
-    * Log in to your Cloudflare dashboard.
-    * Navigate to "Turnstile".
-    * Add a new site, get your "Site Key" and "Secret Key", and enter them into the plugin's settings.
+به منوی "یاقوت لاگین" > تب "امکانات حرفه‌ای" بروید. پس از فعال‌سازی این قابلیت، روی دکمه "ثبت این دستگاه" کلیک کرده و مراحل احراز هویت سیستم‌عامل خود (وارد کردن پین، اثر انگشت یا چهره) را دنبال کنید. از این پس می‌توانید در فرم ورود، با کلیک روی دکمه مربوطه بدون نیاز به کد وارد شوید.
 
-= Can I customize the form's appearance? =
+= چگونه ظاهر فرم را سفارشی‌سازی کنم؟ =
 
-Yes!
-* **Elementor Widget:** The "SMS/OTP Login Form" widget provides extensive styling controls in the Elementor editor's "Style" tab, as well as layout and theme selectors in the "Content" tab.
-* **Shortcode:** The `[slr_otp_form]` shortcode accepts attributes like `theme="minimal"`, `theme="dark"`, `theme="glass"`, `theme="gradient"`, `layout="compact"`, and `text_send_otp="ارسال کد"` to customize the look and button texts.
-* **Custom CSS:** You can always add your own custom CSS to further style the form elements. The main container has the class `slr-otp-form-container`.
+* **ویجت المنتور:** بهترین روش برای سفارشی‌سازی است. شما به تمام تنظیمات استایل، رنگ، فونت، فاصله‌گذاری و چیدمان در تب‌های "محتوا" و "استایل" ویجت دسترسی دارید.
+* **موتور پوسته‌بندی:** شما می‌توانید با ساختن پوشه‌های جدید در مسیر `public/themes` و تعریف فایل‌های `theme.json`, `theme.php`, `style.css` و `script.js`، پوسته‌های کاملاً اختصاصی با HTML و منطق متفاوت ایجاد کنید.
+* **شورت‌کد:** شورت‌کد `[slr_otp_form]` پارامترهایی مانند `theme="dark"`، `layout="compact"` و `text_send_otp="ارسال کن"` را برای تغییرات سریع می‌پذیرد.
+* **CSS سفارشی:** شما همیشه می‌توانید با استفاده از کلاس اصلی `.slr-otp-form-container`، استایل‌های CSS دلخواه خود را اضافه کنید.
+
 
 == Screenshots ==
 
-1.  Plugin Settings Page - General Settings.
-2.  Plugin Settings Page - SMS Gateway Configuration (e.g., Kavenegar).
-3.  Plugin Settings Page - Google Login Configuration.
-4.  Plugin Settings Page - CAPTCHA Configuration.
-5.  Example of the OTP form displayed via Shortcode (Default Theme).
-6.  Example of the OTP form customized with the Elementor widget.
-7.  OTP form integrated into WooCommerce Checkout.
+1.  نمای کلی پنل تنظیمات مدرن و زیبای افزونه.
+2.  بخش تنظیمات درگاه پیامک با قابلیت انتخاب درگاه اصلی و پشتیبان.
+3.  بخش تنظیمات ورود با گوگل و کپچا به صورت تفکیک شده.
+4.  ویجت المنتور و گزینه‌های متنوع آن برای سفارشی‌سازی فرم.
+5.  ویجت جدید المنتور برای دکمه ثبت دستگاه با قابلیت انتخاب آیکون SVG.
+6.  نمونه‌ای از فرم ورود در سایت با یکی از پوسته‌های پیش‌فرض.
+7.  صفحه ورود با دکمه "ورود با اثر انگشت" (WebAuthn).
 
-(You will need to create these screenshots yourself)
 
 == Changelog ==
 
-= 1.0.4 (Current Version - Based on our progress) =
-* Fix: Save phone number correctly on user registration via wp-login.php OTP using a transient and `user_register` hook.
-* Enhancement: Added `layout` and `button_texts` options to `get_otp_form_html` for more flexible form rendering.
-* Enhancement: Updated shortcode to support `layout` and custom button text attributes.
-* Enhancement: Added layout selector, button text controls, and more granular styling controls (spacing, labels) to the Elementor widget.
-* Enhancement: Added basic CSS for new form layouts (compact, inline_labels).
-* Fix: Corrected `wp_localize_script` call in `maybe_enqueue_scripts`.
-* Refactor: Improved OTP identifier logic in `authenticate_with_otp` and `validate_registration_with_otp` for wp-login.php forms.
-* Feature: Added CAPTCHA display and verification to `wp-login.php` forms.
+= 2.0.0 =
+* **بازطراحی ساختاری:** پیاده‌سازی **موتور پوسته‌بندی (Theme Engine)** داینامیک و شیءگرا برای انعطاف‌پذیری بی‌نهایت در طراحی فرم‌ها.
+* **ویژگی جدید:** ویجت جدید المنتور برای **"دکمه ثبت دستگاه (WebAuthn)"** با قابلیت سفارشی‌سازی کامل.
+* **بهبود:** کدنویسی سمت کاربر (JavaScript) برای پشتیبانی از چندین ویجت در یک صفحه بهینه شد.
+* **بهبود:** رفع تمام خطاهای Deprecated و Fatal Error برای سازگاری کامل با PHP 8.2 و بالاتر.
+* **بهبود:** اصلاحات ظاهری و عملکردی در پنل مدیریت بر اساس بازخورد.
 
-= 1.0.3 =
-* Feature: Integrated CAPTCHA (Google reCAPTCHA v2 and Cloudflare Turnstile).
-* Enhancement: Added CAPTCHA settings to admin page.
-* Enhancement: Created `SLR_Captcha_Handler` for server-side verification.
-* Enhancement: Display CAPTCHA widget on forms and integrated verification into AJAX handlers.
+= 1.9.1 =
+* **بازطراحی کامل:** پنل تنظیمات به طور کامل با یک رابط کاربری مدرن، سریع و ایجکس بازنویسی شد.
+* **ویژگی جدید:** ورود بدون رمز (Passwordless) با استفاده از **WebAuthn** (اثر انگشت، تشخیص چهره) اضافه شد.
+* **ارتقا:** سیستم درگاه پیامک با قابلیت تعریف **درگاه پشتیبان (Fallback)** بهبود یافت.
+* **بهبود:** ساختار کد به صورت ماژولار و با استفاده از بهترین الگوهای برنامه‌نویسی بازنویسی شد.
 
-= 1.0.2 =
-* Feature: Integrated Google Login (OAuth 2.0).
-* Feature: Implemented SMS gateway abstraction and Kavenegar as the first example provider.
-* Enhancement: Added settings for Google Login and SMS providers.
-* Enhancement: Added phone field to forms and updated AJAX handlers for SMS OTP.
-* Enhancement: Basic Iranian phone number normalization.
+= 1.5.0 =
+* **ارتقا:** پشتیبانی از چندین درگاه پیامک جدید ایرانی اضافه شد.
+* **بهبود:** ترجمه فارسی افزونه کامل‌تر شد.
 
-= 1.0.1 =
-* Feature: Created generic OTP form HTML generator (`get_otp_form_html`).
-* Feature: Implemented `[slr_otp_form]` shortcode.
-* Feature: Basic Elementor widget structure for the OTP form.
-* Feature: New AJAX handler (`ajax_process_login_register_otp`) for generic form submissions.
-* Enhancement: Refactored JavaScript and script enqueueing for flexibility.
-* Enhancement: Added basic theming (CSS classes) to OTP form.
+= 1.0.4 =
+* **ارتقا:** یکپارچه‌سازی با صفحه تسویه‌حساب ووکامرس اضافه شد.
+* **ارتقا:** کنترل‌های بیشتری به ویجت المنتور و پارامترهای جدیدی به شورت‌کد برای سفارشی‌سازی چیدمان اضافه شد.
 
 = 1.0.0 =
-* Initial release.
-* Basic plugin structure.
-* OTP generation, storage (hashed), and verification logic.
-* Email OTP sending.
-* AJAX handler for sending email OTP.
-* Integration with WordPress default login/registration forms (OTP field, "Send OTP" button, verification via `authenticate` and `registration_errors` hooks).
-* Admin settings page using WordPress Settings API for basic options.
+* انتشار اولیه افزونه با قابلیت ورود و عضویت با OTP (ایمیل و پیامک).
+
 
 == Upgrade Notice ==
 
-= 1.0.4 =
-This version includes significant enhancements to form customization via shortcode and Elementor, and fixes phone number saving for wp-login.php registrations. Please review your Elementor widget settings and shortcode attributes if you were using custom layouts previously, as the implementation has been formalized.
-
-= 1.5.0 =
-* Enhancement: Added 4 new SMS gateways: MeliPayamak, Kavan SMS, Faraz SMS, and SMS.ir.
-* Enhancement: Added 2 new form themes: "Glass" and "Gradient".
-* Enhancement: Full Persian translation for all plugin sections.
-* Fix: Major structural errors in the admin settings panel that caused fatal errors.
-* Fix: JavaScript bug where variables were used before definition in the OTP sending logic.
-* Fix: Removed an invalid hook in the WooCommerce integration class.
-* Fix: Unified the text domain to 'yakutlogin' across all files for proper translation loading.
-* Security: General code hardening and review.
+= 2.0.0 =
+این یک به‌روزرسانی بزرگ و ساختاری است! ما یک **موتور پوسته‌بندی** قدرتمند اضافه کرده‌ایم و ویجت جدیدی برای دکمه ثبت دستگاه ارائه داده‌ایم. این نسخه راه را برای امکانات هیجان‌انگیزتر در آینده هموار می‌کند.

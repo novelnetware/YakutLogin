@@ -21,129 +21,138 @@ class SLR_Otp_Form_Widget extends Widget_Base {
     }
 
     public function get_title() {
-        return __( 'فرم ورود و عضویت پیامکی', 'yakutlogin' );
+        return __( 'فرم ورود و عضویت یاکوت', 'yakutlogin' );
     }
 
     public function get_icon() {
-        return 'eicon-lock-user';
+        // استفاده از آیکون قفل و کاربر از کتابخانه استاندارد المنتور
+        return 'eicon-form-horizontal';
     }
 
     public function get_categories() {
-        return [ 'general' ];
-    }
+    return [ 'slr-elements' ]; 
+}
 
     public function get_keywords() {
-        return [ 'otp', 'sms', 'login', 'register', 'form', 'yakutlogin' ];
+        return [ 'otp', 'sms', 'login', 'register', 'form', 'yakut', 'یاقوت', 'ورود', 'پیامک' ];
     }
 
     protected function register_controls() {
 
-        // Get themes dynamically
-        $theme_manager = class_exists('SLR_Theme_Manager') ? \SLR_Theme_Manager::get_instance() : null;
-        $available_themes = $theme_manager ? $theme_manager->get_themes_for_select() : ['default' => __('پیش‌فرض', 'yakutlogin')];
+     // --- تب محتوا: تنظیمات عمومی ---
+    $this->start_controls_section(
+        'content_section_settings',
+        [
+            'label' => __( 'تنظیمات عمومی فرم', 'yakutlogin' ),
+            'tab' => Controls_Manager::TAB_CONTENT,
+        ]
+    );
 
-        // --- Content Tab ---
-        $this->start_controls_section(
-            'content_section_settings',
-            [
-                'label' => __( 'تنظیمات فرم', 'yakutlogin' ),
-                'tab' => Controls_Manager::TAB_CONTENT,
-            ]
-        );
+    // دریافت لیست پوسته‌ها
+    $theme_manager = \SLR_Theme_Manager::get_instance();
+    $available_themes = $theme_manager ? $theme_manager->get_themes_for_select() : ['default' => __('پیش‌فرض', 'yakutlogin')];
 
-        $this->add_control(
-            'form_context',
-            [
-                'label' => __( 'نوع فرم', 'yakutlogin' ),
-                'type' => Controls_Manager::SELECT,
-                'default' => 'mixed',
-                'options' => [
-                    'mixed'  => __( 'ورود و عضویت (خودکار)', 'yakutlogin' ),
-                ],
-            ]
-        );
+    // کنترل انتخاب پوسته
+    $this->add_control(
+        'form_theme',
+        [
+            'label' => __( 'پوسته فرم', 'yakutlogin' ),
+            'type' => Controls_Manager::SELECT,
+            'default' => 'default',
+            'options' => $available_themes,
+            'description' => 'با تغییر پوسته، تنظیمات مربوط به آن در تب "استایل" ظاهر می‌شود.'
+        ]
+    );
 
-        $this->add_control(
-            'form_layout',
-            [
-                'label' => __( 'چیدمان فرم', 'yakutlogin' ),
-                'type' => Controls_Manager::SELECT,
-                'default' => 'default',
-                'options' => [
-                    'default'  => __( 'پیش‌فرض (برچسب بالا)', 'yakutlogin' ),
-                    'compact' => __( 'فشرده', 'yakutlogin' ),
-                    'inline_labels' => __( 'برچسب خطی (placeholder)', 'yakutlogin' ),
-                ],
-            ]
-        );
+    // کنترل‌های عمومی دیگر
+    $this->add_control(
+        'form_layout',
+        [
+            'label' => __( 'چیدمان فرم', 'yakutlogin' ),
+            'type' => Controls_Manager::SELECT,
+            'default' => 'default',
+            'options' => [
+                'default'       => __( 'پیش‌فرض (برچسب بالا)', 'yakutlogin' ),
+                'compact'       => __( 'فشرده', 'yakutlogin' ),
+                'inline_labels' => __( 'برچسب خطی (placeholder)', 'yakutlogin' ),
+            ],
+            'separator' => 'before',
+        ]
+    );
 
-        $this->add_control(
-            'form_theme',
-            [
-                'label' => __( 'پوسته فرم', 'yakutlogin' ),
-                'type' => Controls_Manager::SELECT,
-                'default' => 'default',
-                'options' => $available_themes, // Use the dynamic list here
-            ]
-        );
+    $this->add_control(
+        'show_labels',
+        [
+            'label' => __( 'نمایش برچسب فیلدها', 'yakutlogin' ),
+            'type' => Controls_Manager::SWITCHER,
+            'label_on' => __( 'نمایش', 'yakutlogin' ),
+            'label_off' => __( 'مخفی', 'yakutlogin' ),
+            'return_value' => 'yes',
+            'default' => 'yes',
+        ]
+    );
+    
+    $this->add_control(
+        'redirect_to',
+        [
+            'label' => __( 'ریدایرکت پس از موفقیت', 'yakutlogin' ),
+            'type' => Controls_Manager::URL,
+            'placeholder' => admin_url(),
+            'show_external' => true,
+            'default' => [ 'url' => '' ],
+            'description' => __('برای ریدایرکت پیش‌فرض خالی بگذارید.', 'yakutlogin'),
+        ]
+    );
 
-        $this->add_control(
-            'show_labels',
-            [
-                'label' => __( 'نمایش برچسب فیلدها', 'yakutlogin' ),
-                'type' => Controls_Manager::SWITCHER,
-                'label_on' => __( 'نمایش', 'yakutlogin' ),
-                'label_off' => __( 'مخفی', 'yakutlogin' ),
-                'return_value' => 'yes',
-                'default' => 'yes',
-            ]
-        );
-        
-        $this->add_control(
-            'redirect_to',
-            [
-                'label' => __( 'ریدایرکت پس از موفقیت', 'yakutlogin' ),
-                'type' => Controls_Manager::URL,
-                'placeholder' => admin_url(),
-                'show_external' => true,
-                'default' => [ 'url' => '' ],
-                'description' => __('برای ریدایرکت پیش‌فرض خالی بگذارید.', 'yakutlogin'),
-            ]
-        );
+    $this->add_control(
+        'hr_buttons',
+        [
+            'type' => Controls_Manager::DIVIDER,
+        ]
+    );
 
-        $this->add_control(
-            'hr_buttons',
-            [
-                'type' => Controls_Manager::DIVIDER,
-            ]
-        );
+    $this->add_control(
+        'text_send_otp',
+        [
+            'label' => __( 'متن دکمه ارسال کد', 'yakutlogin' ),
+            'type' => Controls_Manager::TEXT,
+            'default' => __( 'ارسال کد تایید', 'yakutlogin' ),
+        ]
+    );
 
-        $this->add_control(
-            'text_send_otp',
-            [
-                'label' => __( 'متن دکمه ارسال کد', 'yakutlogin' ),
-                'type' => Controls_Manager::TEXT,
-                'default' => __( 'ارسال کد تایید', 'yakutlogin' ),
-            ]
-        );
-        $this->add_control(
-            'text_submit',
-            [
-                'label' => __( 'متن دکمه ثبت‌نام/ورود', 'yakutlogin' ),
-                'type' => Controls_Manager::TEXT,
-                'default' => __( 'ورود / عضویت با کد تایید', 'yakutlogin' ),
-            ]
-        );
-        $this->add_control(
-            'text_google',
-            [
-                'label' => __( 'متن دکمه ورود با گوگل', 'yakutlogin' ),
-                'type' => Controls_Manager::TEXT,
-                'default' => __( 'ورود توسط گوگل', 'yakutlogin' ),
-            ]
-        );
+    $this->add_control(
+        'text_submit',
+        [
+            'label' => __( 'متن دکمه ثبت‌نام/ورود', 'yakutlogin' ),
+            'type' => Controls_Manager::TEXT,
+            'default' => __( 'ورود / عضویت با کد تایید', 'yakutlogin' ),
+        ]
+    );
 
-        $this->end_controls_section();
+    $this->add_control(
+        'text_google',
+        [
+            'label' => __( 'متن دکمه ورود با گوگل', 'yakutlogin' ),
+            'type' => Controls_Manager::TEXT,
+            'default' => __( 'ورود توسط گوگل', 'yakutlogin' ),
+        ]
+    );
+
+    // *** اصلاح شد: بخش تنظیمات عمومی در اینجا بسته می‌شود ***
+    $this->end_controls_section();
+
+    // --- بخش کنترل‌های داینامیک پوسته‌ها ---
+    // این حلقه اکنون خارج از بخش قبلی قرار دارد و هر پوسته می‌تواند بخش‌های استایل خود را به صورت مستقل ثبت کند.
+    if ($theme_manager) {
+        foreach ($available_themes as $id => $name) {
+            $theme_object = $theme_manager->get_theme($id);
+            if ($theme_object) {
+                // ما اینجا آبجکت ویجت ($this) را به تابع پاس می‌دهیم تا پوسته بتواند کنترل‌های خود را به آن اضافه کند.
+                // هر پوسته باید کنترل‌های خود را داخل یک section با condition قرار دهد تا فقط زمانی نمایش داده شوند که آن پوسته فعال است.
+                $theme_object->register_elementor_controls($this);
+            }
+        }
+    }
 
         // --- Style Tab ---
         $this->start_controls_section(
@@ -307,36 +316,47 @@ class SLR_Otp_Form_Widget extends Widget_Base {
     }
 
     protected function render() {
-        $settings = $this->get_settings_for_display();
+    $settings = $this->get_settings_for_display();
+    
+    $public_class_instance = null;
+    
+    // اطمینان از وجود کلاس‌های مورد نیاز
+    if (class_exists('Sms_Login_Register_Public') && class_exists('SLR_Theme_Manager')) {
+        $plugin_name = defined('SLR_PLUGIN_NAME_FOR_INSTANCE') ? SLR_PLUGIN_NAME_FOR_INSTANCE : 'sms-login-register';
+        $plugin_version = defined('SLR_PLUGIN_VERSION_FOR_INSTANCE') ? SLR_PLUGIN_VERSION_FOR_INSTANCE : '1.9.1';
         
-        $public_class_instance = null;
-        if (class_exists('Sms_Login_Register_Public')) {
-            $plugin_name = defined('SLR_PLUGIN_NAME_FOR_INSTANCE') ? SLR_PLUGIN_NAME_FOR_INSTANCE : 'sms-login-register';
-            $plugin_version = defined('SLR_PLUGIN_VERSION_FOR_INSTANCE') ? SLR_PLUGIN_VERSION_FOR_INSTANCE : '1.5.0';
-            // We need to pass the theme manager to the constructor
-            $theme_manager = \SLR_Theme_Manager::get_instance();
-            $public_class_instance = new \Sms_Login_Register_Public($plugin_name, $plugin_version);
-        }
 
-        if ($public_class_instance) {
-            $button_texts = [
-                'send_otp' => $settings['text_send_otp'],
-                'submit'   => $settings['text_submit'],
-                'google'   => $settings['text_google'],
-            ];
-            $form_args = [
-                'context'     => $settings['form_context'],
-                'show_labels' => ($settings['show_labels'] === 'yes'),
-                'redirect_to' => $settings['redirect_to']['url'] ?? '',
-                'theme'       => $settings['form_theme'],
-                'layout'      => $settings['form_layout'],
-                'button_texts'=> $button_texts,
-            ];
-            echo $public_class_instance->get_otp_form_html( $form_args );
-        } else {
-            echo __('خطا: کلاس افزونه یافت نشد.', 'yakutlogin');
-        }
+        $theme_manager = \SLR_Theme_Manager::get_instance();
+        
+        
+        $public_class_instance = new \Sms_Login_Register_Public($plugin_name, $plugin_version, $theme_manager);
+        
     }
+
+    if ($public_class_instance) {
+    $button_texts = [
+        // استفاده از Null Coalescing Operator برای ارائه مقدار پیش‌فرض
+        'send_otp' => $settings['text_send_otp'] ?? __( 'ارسال کد تایید', 'yakutlogin' ),
+        'submit'   => $settings['text_submit'] ?? __( 'ورود / عضویت', 'yakutlogin' ),
+        'google'   => $settings['text_google'] ?? __( 'ورود با گوگل', 'yakutlogin' ),
+    ];
+
+    $form_args = [
+        // استفاده از Null Coalescing Operator برای تمام مقادیر
+        'context'     => $settings['form_context'] ?? 'mixed',
+        'show_labels' => ($settings['show_labels'] ?? 'yes') === 'yes',
+        'redirect_to' => $settings['redirect_to']['url'] ?? '',
+        'theme'       => $settings['form_theme'] ?? 'default',
+        'layout'      => $settings['form_layout'] ?? 'default',
+        'button_texts'=> $button_texts,
+    ];
+    
+    echo $public_class_instance->get_otp_form_html( $form_args );
+
+} else {
+        echo __('خطا: کلاس اصلی افزونه یافت نشد.', 'yakutlogin');
+    }
+}
 
     protected function content_template() {
         ?>

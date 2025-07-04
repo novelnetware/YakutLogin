@@ -129,7 +129,8 @@ class Sms_Login_Register {
      */
     private function set_locale() {
         $plugin_i18n = new Sms_Login_Register_i18n();
-        $this->loader->add_action('plugins_loaded', $plugin_i18n, 'load_plugin_textdomain');
+        // استفاده از هوک 'init' به جای 'plugins_loaded'
+        $this->loader->add_action('init', $plugin_i18n, 'load_plugin_textdomain');
     }
 
     /**
@@ -160,7 +161,7 @@ class Sms_Login_Register {
     private function define_public_hooks() {
         $plugin_public = $this->public;
 
-        $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'maybe_enqueue_assets', 99);
+        $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'maybe_enqueue_scripts', 99);
         
         // AJAX handler for sending OTP (for both guests and logged-in users)
         $this->loader->add_action('wp_ajax_nopriv_slr_send_otp', $plugin_public, 'ajax_send_otp');
@@ -185,8 +186,13 @@ class Sms_Login_Register {
         $this->loader->add_action('init', $plugin_public, 'init_google_login', 5);
         $this->loader->add_action('init', $plugin_public, 'handle_google_callback', 5);
 
+        // رهگیری خطاهای ارسال ایمیل
+        $this->loader->add_action( 'wp_mail_failed', $plugin_public, 'handle_wp_mail_failed', 10, 1 );
+
         // Register Shortcode
         add_shortcode('slr_otp_form', [$plugin_public, 'render_slr_otp_form_shortcode']);
+
+        add_shortcode('yakut_webauthn_register_button', [$plugin_public, 'render_webauthn_register_button']);
     }
     
     /**

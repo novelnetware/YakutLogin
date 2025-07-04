@@ -1,10 +1,7 @@
 <?php
 namespace Sms_Login_Register_Elementor;
 
-// Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 class SLR_Elementor_Widget_Loader {
 
@@ -18,26 +15,27 @@ class SLR_Elementor_Widget_Loader {
     }
 
     private function __construct() {
+        // فقط ویجت‌ها و دسته‌بندی را ثبت می‌کنیم
         add_action( 'elementor/widgets/register', [ $this, 'register_widgets' ] );
-         // For Elementor Pro, if you want to place it in specific categories (like "Theme Elements")
-        // add_action( 'elementor/elements/categories_registered', [ $this, 'add_elementor_widget_categories' ] );
+        add_action( 'elementor/elements/categories_registered', [ $this, 'add_elementor_widget_categories' ] );
     }
 
     public function register_widgets( $widgets_manager ) {
+        // ویجت فرم ورود
         require_once SLR_PLUGIN_DIR . 'includes/elementor/widgets/class-slr-otp-form-widget.php';
-        $widgets_manager->register( new Widgets\SLR_Otp_Form_Widget() );
+        $widgets_manager->register( new \Sms_Login_Register_Elementor\Widgets\SLR_Otp_Form_Widget() );
+
+        // ویجت دکمه WebAuthn
+        require_once SLR_PLUGIN_DIR . 'includes/elementor/widgets/class-slr-webauthn-widget.php';
+        $widgets_manager->register( new \Sms_Login_Register_Elementor\Widgets\SLR_WebAuthn_Widget() );
     }
 
-    // Optional: Add custom category
-    /*
     public function add_elementor_widget_categories( $elements_manager ) {
         $elements_manager->add_category(
             'slr-elements',
             [
-                'title' => __( 'SMS Login Register', 'sms-login-register' ),
-                'icon' => 'fa fa-plug', // Choose an icon
+                'title' => __( 'یاکوت لاگین', 'yakutlogin' ),
             ]
         );
     }
-    */
 }

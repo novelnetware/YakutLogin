@@ -26,7 +26,6 @@ class SLR_Kavenegar_Gateway implements SLR_Sms_Gateway {
     private $use_lookup;
     private $lookup_template_name;
 
-
     public function __construct() {
         $this->options = get_option( 'slr_plugin_options', array() );
         $this->api_key = isset( $this->options['kavenegar_api_key'] ) ? $this->options['kavenegar_api_key'] : '';
@@ -40,37 +39,37 @@ class SLR_Kavenegar_Gateway implements SLR_Sms_Gateway {
     }
 
     public function get_name() {
-        return __( 'Kavenegar', 'sms-login-register' );
+        return __( 'کاوه‌نگار', 'yakutlogin' );
     }
 
     public function get_settings_fields() {
         return array(
             'kavenegar_api_key' => array(
-                'label' => __( 'Kavenegar API Key', 'sms-login-register' ),
+                'label' => __( 'کلید API کاوه‌نگار', 'yakutlogin' ),
                 'type'  => 'text',
-                'desc'  => __('Enter your Kavenegar API key.', 'sms-login-register')
+                'desc'  => __( 'کلید API کاوه‌نگار خود را وارد کنید.', 'yakutlogin' )
             ),
             'kavenegar_sender_line' => array(
-                'label' => __( 'Kavenegar Sender Line (Optional)', 'sms-login-register' ),
+                'label' => __( 'خط ارسال کننده کاوه‌نگار (اختیاری)', 'yakutlogin' ),
                 'type'  => 'text',
-                'desc'  => __('Enter your Kavenegar sender line number if you are not using Lookup. Leave empty for default.', 'sms-login-register')
+                'desc'  => __( 'اگر از سرویس ارسال سریع (Lookup) استفاده نمی‌کنید، شماره خط خود را وارد کنید. برای استفاده از خط پیش‌فرض، خالی بگذارید.', 'yakutlogin' )
             ),
             'kavenegar_use_lookup' => array(
-                'label' => __( 'Use Kavenegar Lookup for OTP', 'sms-login-register' ),
+                'label' => __( 'استفاده از سرویس ارسال سریع (Lookup) برای OTP', 'yakutlogin' ),
                 'type'  => 'checkbox',
-                'desc'  => __('Recommended for sending OTPs via pre-approved templates. Faster and more reliable.', 'sms-login-register')
+                'desc'  => __( 'توصیه می‌شود. این روش پیامک‌های کد تایید را از طریق قالب‌های از پیش تایید شده، سریع‌تر و با اطمینان بالاتر ارسال می‌کند.', 'yakutlogin' )
             ),
             'kavenegar_lookup_template' => array(
-                'label' => __( 'Kavenegar Lookup Template Name', 'sms-login-register' ),
+                'label' => __( 'نام قالب ارسال سریع (Lookup) کاوه‌نگار', 'yakutlogin' ),
                 'type'  => 'text',
-                'desc'  => __('The name of your OTP template registered in Kavenegar (e.g., "myOtpTemplate"). Required if Lookup is enabled. The template should accept one token (your OTP code).', 'sms-login-register')
+                'desc'  => __( 'نام قالبی که در پنل کاوه‌نگار برای ارسال کد تایید ثبت کرده‌اید (مثلا: "myOtpTemplate"). اگر ارسال سریع فعال باشد، این فیلد الزامی است. قالب شما باید یک توکن (کد OTP) را بپذیرد.', 'yakutlogin' )
             ),
         );
     }
 
     public function send_sms( $phone_number, $message, $otp_code = '' ) {
         if ( empty( $this->api_key ) ) {
-            error_log( 'SLR Kavenegar Error: API Key is not set.' );
+            error_log( 'YakutLogin Kavenegar Error: API Key is not set.' );
             return false;
         }
 
@@ -87,7 +86,7 @@ class SLR_Kavenegar_Gateway implements SLR_Sms_Gateway {
         } else {
              if ( empty( $this->sender_line ) ) {
                 error_log( 'SLR Kavenegar Error: Sender line is not set for regular SMS.' );
-            }
+             }
             $url = sprintf( 'https://api.kavenegar.com/v1/%s/sms/send.json', $this->api_key );
             $params = array(
                 'receptor' => $phone_number,
@@ -103,7 +102,7 @@ class SLR_Kavenegar_Gateway implements SLR_Sms_Gateway {
         ) );
 
         if ( is_wp_error( $response ) ) {
-            error_log( 'SLR Kavenegar WP Error: ' . $response->get_error_message() );
+            error_log( 'YakutLogin Kavenegar WP Error: ' . $response->get_error_message() );
             return false;
         }
 
@@ -116,8 +115,8 @@ class SLR_Kavenegar_Gateway implements SLR_Sms_Gateway {
             $error_message = isset( $result['return']['message'] ) ? $result['return']['message'] : 'Unknown Kavenegar API error';
              if (isset($result['entries'][0]['message'])) {
                 $error_message = $result['entries'][0]['message'];
-            }
-            error_log( 'SLR Kavenegar API Error: ' . $error_message . ' | Response: ' . $response_body );
+             }
+            error_log( 'YakutLogin Kavenegar API Error: ' . $error_message . ' | Response: ' . $response_body );
             return false;
         }
     }

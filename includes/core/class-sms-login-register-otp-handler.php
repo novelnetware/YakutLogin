@@ -29,20 +29,39 @@ class Sms_Login_Register_Otp_Handler {
     const OTP_TRANSIENT_PREFIX = 'slr_otp_';
 
     /**
-     * Generates a numeric OTP.
-     *
-     * @since 1.0.0
-     * @param int $length The desired length of the OTP.
-     * @return string The generated OTP.
-     */
-    public static function generate_otp( $length = self::OTP_LENGTH ) {
-        $generator = "1234567890";
-        $result = "";
-        for ( $i = 1; $i <= $length; $i++ ) {
-            $result .= substr( $generator, ( rand() % ( strlen( $generator ) ) ), 1 );
-        }
-        return $result;
+ * Generates a cryptographically secure numeric OTP.
+ *
+ * @since 1.0.0
+ * @param int $length The desired length of the OTP.
+ * @return string The generated OTP.
+ */
+public static function generate_otp( $length = self::OTP_LENGTH ) {
+    // Check if the length is a positive integer.
+    if ( ! is_int( $length ) || $length <= 0 ) {
+        $length = self::OTP_LENGTH; // Fallback to default length.
     }
+
+    try {
+        // Calculate the range for the random number.
+        // For a length of 6, the range is 0 to 999999.
+        $min = 0;
+        $max = 10**$length - 1;
+
+        // Generate a cryptographically secure random integer.
+        $otp_number = random_int( $min, $max );
+
+        // Pad the number with leading zeros if it's shorter than the desired length.
+        // For example, if random_int generates 123, str_pad will turn it into "000123".
+        return str_pad( (string) $otp_number, $length, '0', STR_PAD_LEFT );
+
+    } catch ( Exception $e ) {
+        // If random_int() fails for some reason (rare), fallback to a less secure method
+        // or handle the error. For OTP, falling back to a weaker method is not recommended.
+        // Here we can use wp_rand() as a WordPress-specific fallback.
+        $otp_number = wp_rand( 0, 10**$length - 1 );
+        return str_pad( (string) $otp_number, $length, '0', STR_PAD_LEFT );
+    }
+}
 
     /**
      * Stores the OTP for a given identifier using WordPress transients.

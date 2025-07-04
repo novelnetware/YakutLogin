@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // =================================================================
-    // Helper Functions (Moved inside DOMContentLoaded)
+    // Helper Functions
     // =================================================================
 
     /**
-     * تابع نمایش نوتیفیکیشن
+     * Displays a notification.
      */
     function showNotification(message, type = 'success') {
         const container = document.getElementById('notification-container');
@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(notification);
         setTimeout(() => {
             notification.remove();
-        }, 4000);
+        }, 5000);
     }
 
     /**
-     * توابع کمکی برای WebAuthn
+     * WebAuthn helper functions.
      */
     function bufferDecode(value) {
         return Uint8Array.from(atob(value.replace(/_/g, '/').replace(/-/g, '+')), c => c.charCodeAt(0));
@@ -62,9 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * تابع بارگذاری فیلدهای درگاه پیامک
+     * Loads SMS gateway fields via AJAX.
      */
-    function loadGatewayFields(gatewayId, type) { // type can be 'primary' or 'backup'
+    function loadGatewayFields(gatewayId, type) {
         const containerId = (type === 'primary') 
             ? 'primary-gateway-fields-container' 
             : 'backup-gateway-fields-container';
@@ -72,12 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById(containerId);
         if (!container) return;
         
-        container.innerHTML = '<div class="setting-option"><i class="fas fa-spinner fa-spin"></i> در حال بارگذاری فیلدها...</div>';
-
         if (!gatewayId) {
             container.innerHTML = '';
             return;
         }
+
+        container.innerHTML = '<div class="setting-option"><i class="fas fa-spinner fa-spin"></i> در حال بارگذاری فیلدها...</div>';
         
         fetch(yakutlogin_admin_ajax.ajax_url, {
             method: 'POST',
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     // =================================================================
 
-    // ۱. مدیریت تعویض تب‌ها
+    // 1. Tab switching
     const navLinks = document.querySelectorAll('.nav-links li');
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ۲. مدیریت ذخیره تنظیمات با ایجکس
+    // 2. Save settings via AJAX
     const saveButton = document.getElementById('yakutlogin-save-settings');
     if (saveButton) {
         saveButton.addEventListener('click', (e) => {
@@ -126,7 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('yakutlogin-admin-form');
             const formData = new URLSearchParams(new FormData(form)).toString();
             
-            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
+            const originalButtonHTML = saveButton.innerHTML;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 8px;"></i> در حال ذخیره...';
             saveButton.disabled = true;
 
             fetch(yakutlogin_admin_ajax.ajax_url, {
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `action=yakutlogin_save_settings&nonce=${yakutlogin_admin_ajax.nonce}&${formData}`
+                body: `action=yakutlogin_save_settings&nonce=${yakutlogin_admin_ajax.nonce}&settings=${formData}`
             })
             .then(response => response.json())
             .then(result => {
@@ -146,82 +147,139 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => showNotification('خطای ناشناخته در ارتباط با سرور.', 'error'))
             .finally(() => {
-                saveButton.innerHTML = '<i class="fas fa-save"></i> ذخیره تغییرات';
+                saveButton.innerHTML = originalButtonHTML;
                 saveButton.disabled = false;
             });
         });
     }
 
-    // ۳. مدیریت بارگذاری داینامیک فیلدهای درگاه پیامک
+    // 3. Dynamic loading for SMS gateway fields
     const primaryGatewaySelect = document.getElementById('primary-sms-provider-select');
     if (primaryGatewaySelect) {
         loadGatewayFields(primaryGatewaySelect.value, 'primary');
-        primaryGatewaySelect.addEventListener('change', (e) => {
-            loadGatewayFields(e.target.value, 'primary');
-        });
+        primaryGatewaySelect.addEventListener('change', (e) => loadGatewayFields(e.target.value, 'primary'));
     }
     
     const backupGatewaySelect = document.getElementById('backup-sms-provider-select');
     if (backupGatewaySelect) {
         loadGatewayFields(backupGatewaySelect.value, 'backup');
-        backupGatewaySelect.addEventListener('change', (e) => {
-            loadGatewayFields(e.target.value, 'backup');
-        });
+        backupGatewaySelect.addEventListener('change', (e) => loadGatewayFields(e.target.value, 'backup'));
     }
 
-    // ۴. مدیریت ثبت دستگاه با WebAuthn
+    // 4. WebAuthn device registration
     const registerDeviceBtn = document.getElementById('yakutlogin-register-device');
     if (registerDeviceBtn) {
         registerDeviceBtn.addEventListener('click', async () => {
-            registerDeviceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> منتظر تایید شما...';
+            const originalButtonHTML = registerDeviceBtn.innerHTML;
+            registerDeviceBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 8px;"></i> منتظر تایید شما...';
             registerDeviceBtn.disabled = true;
 
             try {
-                // دریافت گزینه‌ها از سرور
+                // Get options from the server
                 const createOptionsResponse = await fetch(yakutlogin_admin_ajax.ajax_url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `action=yakutlogin_get_registration_options&nonce=${yakutlogin_admin_ajax.nonce}`
                 });
-                const creationOptions = await createOptionsResponse.json();
+                const creationOptionsJSON = await createOptionsResponse.json();
                 
-                if (!creationOptions.success) {
-                    throw new Error(creationOptions.data.message || 'خطا در دریافت تنظیمات ثبت‌نام.');
+                if (!creationOptionsJSON.success) {
+                    throw new Error(creationOptionsJSON.data.message || 'خطا در دریافت تنظیمات ثبت‌نام.');
                 }
 
-                // آماده‌سازی گزینه‌ها برای مرورگر
-                const credentialOptions = prepareOptionsForBrowser(creationOptions.data);
+                // *** اصلاح شد: متغیر credentialOptions تعریف و مقداردهی شد ***
+                const credentialOptions = prepareOptionsForBrowser(creationOptionsJSON.data);
 
-                // فراخوانی API مرورگر
+                // Call browser API
                 const credential = await navigator.credentials.create({
                     publicKey: credentialOptions
                 });
                 
-                // ارسال مدرک به سرور برای تایید
-                const verifyResponse = await fetch(yakutlogin_admin_ajax.ajax_url, {
+                // *** اصلاح شد: متغیر preparedCredential تعریف و مقداردهی شد ***
+                const preparedCredential = prepareCredentialForServer(credential);
+
+                // Send credential to the server for verification
+                // *** اصلاح شد: 'action' و '_wpnonce' به URL اضافه شدند ***
+                const verifyUrl = `${yakutlogin_admin_ajax.ajax_url}?action=yakutlogin_verify_registration&_wpnonce=${yakutlogin_admin_ajax.nonce}`;
+
+                const verifyResponse = await fetch(verifyUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(prepareCredentialForServer(credential))
+                    body: JSON.stringify(preparedCredential)
                 });
-
                 const verificationResult = await verifyResponse.json();
                 
                 if (verificationResult.success) {
                     showNotification(verificationResult.data.message, 'success');
-                    // Optional: reload page or update UI after successful registration
-                    setTimeout(() => window.location.reload(), 1500);
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
                     throw new Error(verificationResult.data.message || 'سرور قادر به تایید دستگاه نبود.');
                 }
 
             } catch (err) {
                 console.error("WebAuthn Error:", err);
-                showNotification(err.message || 'ثبت دستگاه با خطا مواجه شد. (ممکن است مرورگر شما پشتیبانی نکند یا عملیات لغو شده باشد)', 'error');
+                const errorMessage = err.name === 'NotAllowedError' 
+                    ? 'عملیات توسط شما لغو شد.' 
+                    : (err.message || 'یک خطای ناشناخته رخ داد.');
+                showNotification(errorMessage, 'error');
             } finally {
-                registerDeviceBtn.innerHTML = '<i class="fas fa-fingerprint"></i> ثبت این دستگاه';
+                registerDeviceBtn.innerHTML = originalButtonHTML;
                 registerDeviceBtn.disabled = false;
             }
         });
     }
 
+    // 5. Dynamic visibility for CAPTCHA provider settings
+    const captchaSelect = document.getElementById('captcha-type-select');
+    if (captchaSelect) {
+        const manageCaptchaVisibility = () => {
+            const selectedProvider = captchaSelect.value;
+            document.querySelectorAll('[data-captcha-provider]').forEach(card => {
+                card.style.display = (card.getAttribute('data-captcha-provider') === selectedProvider) ? 'block' : 'none';
+            });
+        };
+        manageCaptchaVisibility(); // Run on page load
+        captchaSelect.addEventListener('change', manageCaptchaVisibility); // Run on change
+    }
+
+    // 6. Data cleanup handling
+    const cleanupBtn = document.getElementById('yakutlogin-cleanup-data');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', function() {
+            if (confirm('آیا مطمئن هستید؟ این عمل غیرقابل بازگشت است و تمام داده‌های یاقوت لاگین را حذف می‌کند.')) {
+                if (confirm('هشدار نهایی! تمام داده‌ها برای همیشه حذف خواهند شد. ادامه می‌دهید؟')) {
+                    
+                    const originalButtonText = this.innerHTML;
+                    this.disabled = true;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 8px;"></i> در حال پاکسازی...';
+
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'yakutlogin_cleanup_data');
+                    formData.append('nonce', yakutlogin_admin_ajax.nonce);
+
+                    fetch(yakutlogin_admin_ajax.ajax_url, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            alert(result.data.message);
+                            window.location.reload();
+                        } else {
+                            alert('خطا: ' + (result.data.message || 'یک مشکل ناشناخته رخ داد.'));
+                            this.disabled = false;
+                            this.innerHTML = originalButtonText;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Cleanup Error:', error);
+                        alert('خطای شبکه. لطفا اتصال اینترنت خود را بررسی کرده و دوباره تلاش کنید.');
+                        this.disabled = false;
+                        this.innerHTML = originalButtonText;
+                    });
+                }
+            }
+        });
+    }
 });

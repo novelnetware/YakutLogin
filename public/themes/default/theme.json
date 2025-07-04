@@ -1,5 +1,14 @@
 {
-  "name": "پیش‌فرض",
+  "name": "پوسته پیش‌فرض",
   "id": "default",
-  "style": "style-def.css"
+  "version": "1.0.0",
+  "php_class": "SLR_Default_Theme",
+  "assets": [
+    {
+      "type": "style",
+      "handle": "slr-default-theme-style",
+      "src": "style.css"
+    }
+  ],
+  "elementor_controls": "elementor-controls.php"
 }

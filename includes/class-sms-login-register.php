@@ -44,30 +44,14 @@ class Sms_Login_Register {
     protected $public;
 
     /**
-     * The theme manager instance.
-     * @var SLR_Theme_Manager
-     */
-    protected $theme_manager;
-
-    /**
-     * The SMS Gateway manager.
-     * @var SLR_Gateway_Manager
-     */
-    protected $gateway_manager;
-
-    /**
      * Define the core functionality of the plugin.
      */
     public function __construct() {
-        if (defined('SLR_PLUGIN_VERSION')) {
-            $this->version = SLR_PLUGIN_VERSION;
-        } else {
-            $this->version = '1.0.0';
-        }
+        $this->version = defined('SLR_PLUGIN_VERSION') ? SLR_PLUGIN_VERSION : '1.3.0';
         $this->plugin_name = 'YakutLogin';
 
         $this->load_dependencies();
-        $this->instantiate_handlers();
+        $this->instantiate_classes();
         $this->set_locale();
         $this->define_admin_hooks();
         $this->define_public_hooks();
@@ -81,46 +65,57 @@ class Sms_Login_Register {
     private function load_dependencies() {
         // Core orchestrator
         require_once SLR_PLUGIN_DIR . 'includes/class-sms-login-register-loader.php';
-
         // Internationalization
         require_once SLR_PLUGIN_DIR . 'includes/class-sms-login-register-i18n.php';
-
         // Core Handlers
         require_once SLR_PLUGIN_DIR . 'includes/core/class-sms-login-register-otp-handler.php';
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-theme-manager.php';
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-gateway-manager.php';
         require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-captcha-handler.php';
+        require_once SLR_PLUGIN_DIR . 'includes/core/class-slr-rest-api.php';
+        
+        // Integrations
+        require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-telegram-handler.php';
+
+        require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-telegram-handler.php';
+require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-bale-handler.php';
+require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-bale-otp-handler.php';
+
+        if (class_exists('WooCommerce')) {
+            require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-woocommerce-integration.php';
+        }
 
         // Admin and Public classes
         require_once SLR_PLUGIN_DIR . 'admin/class-sms-login-register-admin.php';
         require_once SLR_PLUGIN_DIR . 'public/class-sms-login-register-public.php';
-
-        // Integrations
-        if (class_exists('WooCommerce')) {
-            require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-woocommerce-integration.php';
-        }
     }
 
     /**
-     * Instantiate all handlers and controllers.
+     * Instantiate all core classes for the plugin.
      * @access private
      */
-    private function instantiate_handlers() {
-        $this->loader           = new Sms_Login_Register_Loader();
-        $this->theme_manager    = SLR_Theme_Manager::get_instance();
-        $this->gateway_manager  = new SLR_Gateway_Manager();
+    private function instantiate_classes() {
+        $this->loader = new Sms_Login_Register_Loader();
 
-        // Instantiate admin and public controllers, passing necessary dependencies
-        $this->public = new Sms_Login_Register_Public($this->get_plugin_name(), $this->get_version(), $this->theme_manager);
+        // Instantiate core handlers first as other classes might depend on them
+        $theme_manager = SLR_Theme_Manager::get_instance(); // Theme manager is a singleton
+
+        // Instantiate REST API handler
+        if (class_exists('SLR_Rest_Api')) {
+            new SLR_Rest_Api();
+        }
+
+        // Now, instantiate the main admin and public classes
+        $this->admin = new Sms_Login_Register_Admin($this->get_plugin_name(), $this->get_version());
+        $this->public = new Sms_Login_Register_Public($this->get_plugin_name(), $this->get_version(), $theme_manager);
     }
-    
+
     /**
      * Define the locale for this plugin for internationalization.
      * @access   private
      */
     private function set_locale() {
         $plugin_i18n = new Sms_Login_Register_i18n();
-        // استفاده از هوک 'init' به جای 'plugins_loaded'
         $this->loader->add_action('init', $plugin_i18n, 'load_plugin_textdomain');
     }
 
@@ -129,16 +124,36 @@ class Sms_Login_Register {
      * @access   private
      */
     private function define_admin_hooks() {
-        $plugin_admin = $this->admin;
+        // We use $this->admin directly now that it's guaranteed to be an object.
+        $this->loader->add_action('admin_enqueue_scripts', $this->admin, 'enqueue_styles');
+        $this->loader->add_action('admin_enqueue_scripts', $this->admin, 'enqueue_scripts');
+        $this->loader->add_action('admin_menu', $this->admin, 'add_plugin_admin_menu');
+        $this->loader->add_action('admin_init', $this->admin, 'register_settings');
 
-        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
-        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
-        $this->loader->add_action('admin_menu', $plugin_admin, 'add_plugin_admin_menu');
-        $this->loader->add_action('admin_init', $plugin_admin, 'register_settings');
+        // AJAX hooks
+        $this->loader->add_action('wp_ajax_yakutlogin_save_settings', $this->admin, 'ajax_save_settings');
+        $this->loader->add_action('wp_ajax_yakutlogin_get_gateway_fields', $this->admin, 'ajax_get_gateway_fields');
+        $this->loader->add_action('wp_ajax_yakutlogin_cleanup_data', $this->admin, 'ajax_cleanup_data');
+        $this->loader->add_action('wp_ajax_yakutlogin_test_telegram_connection', $this->admin, 'ajax_test_telegram_connection');
+        $this->loader->add_action('wp_ajax_yakutlogin_create_cf_worker', $this->admin, 'ajax_create_cf_worker');
+        $this->loader->add_action('wp_ajax_yakutlogin_get_telegram_webhook_info', $this->admin, 'ajax_get_telegram_webhook_info');
 
-        // Register AJAX hooks and point them to the correct handler ($plugin_admin)
-        $this->loader->add_action('wp_ajax_yakutlogin_save_settings', $plugin_admin, 'ajax_save_settings');
-        $this->loader->add_action('wp_ajax_yakutlogin_get_gateway_fields', $plugin_admin, 'ajax_get_gateway_fields');
+        $this->loader->add_action('wp_ajax_yakutlogin_set_telegram_webhook', $this->admin, 'ajax_set_telegram_webhook');
+
+        // START: Add API Key Management AJAX Hooks
+        $this->loader->add_action('wp_ajax_yakutlogin_get_api_keys', $this->admin, 'ajax_get_api_keys');
+        $this->loader->add_action('wp_ajax_yakutlogin_generate_api_key', $this->admin, 'ajax_generate_api_key');
+        $this->loader->add_action('wp_ajax_yakutlogin_revoke_api_key', $this->admin, 'ajax_revoke_api_key');
+        // END: Add API Key Management AJAX Hooks
+
+        // this line for the Digits Importer
+        $this->loader->add_action('wp_ajax_slr_import_from_digits', $this->admin, 'ajax_slr_import_from_digits');
+
+        // Add this new line for the WooCommerce Importer
+        if (class_exists('WooCommerce')) {
+            $this->loader->add_action('wp_ajax_slr_import_from_wc', $this->admin, 'ajax_slr_import_from_wc');
+        }
+        
     }
 
     /**
@@ -146,36 +161,46 @@ class Sms_Login_Register {
      * @access   private
      */
     private function define_public_hooks() {
-        $plugin_public = $this->public;
-
-        $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'maybe_enqueue_scripts', 99);
+        // We use $this->public directly.
+        $this->loader->add_action('wp_enqueue_scripts', $this->public, 'maybe_enqueue_scripts', 99);
         
-        // AJAX handler for sending OTP (for both guests and logged-in users)
-        $this->loader->add_action('wp_ajax_nopriv_slr_send_otp', $plugin_public, 'ajax_send_otp');
-        $this->loader->add_action('wp_ajax_slr_send_otp', $plugin_public, 'ajax_send_otp');
+        // OTP AJAX Handlers
+        $this->loader->add_action('wp_ajax_nopriv_slr_send_otp', $this->public, 'ajax_send_otp');
+        $this->loader->add_action('wp_ajax_slr_send_otp', $this->public, 'ajax_send_otp');
+        $this->loader->add_action('wp_ajax_nopriv_slr_process_login_register_otp', $this->public, 'ajax_process_login_register_otp');
+        $this->loader->add_action('wp_ajax_slr_process_login_register_otp', $this->public, 'ajax_process_login_register_otp');
 
-        // AJAX handler for processing the generic OTP form
-        $this->loader->add_action('wp_ajax_nopriv_slr_process_login_register_otp', $plugin_public, 'ajax_process_login_register_otp');
-        $this->loader->add_action('wp_ajax_slr_process_login_register_otp', $plugin_public, 'ajax_process_login_register_otp');
+        // Telegram AJAX Handlers
+        $this->loader->add_action('wp_ajax_nopriv_slr_generate_telegram_request', $this->public, 'ajax_generate_telegram_request');
+        $this->loader->add_action('wp_ajax_nopriv_slr_check_telegram_login_status', $this->public, 'ajax_check_telegram_login_status');
 
-        // Hooks for wp-login.php forms
-        $this->loader->add_action('login_form', $plugin_public, 'add_otp_fields_to_login_form');
-        $this->loader->add_action('register_form', $plugin_public, 'add_otp_fields_to_register_form');
-        $this->loader->add_filter('authenticate', $plugin_public, 'authenticate_with_otp', 20, 3);
-        $this->loader->add_filter('registration_errors', $plugin_public, 'validate_registration_with_otp', 10, 3);
-        $this->loader->add_action('user_register', $plugin_public, 'save_pending_phone_number_on_registration', 10, 1);
+        // Bale AJAX Handlers
+        $this->loader->add_action('wp_ajax_nopriv_slr_send_bale_otp', $this->public, 'ajax_send_bale_otp');
+        $this->loader->add_action('wp_ajax_slr_send_bale_otp', $this->public, 'ajax_send_bale_otp');
+        $this->loader->add_action('wp_ajax_nopriv_slr_generate_bale_bot_request', $this->public, 'ajax_generate_bale_bot_request');
+        $this->loader->add_action('wp_ajax_nopriv_slr_check_bale_login_status', $this->public, 'ajax_check_bale_login_status');
         
-        // Hooks for Google Login
-        $this->loader->add_action('init', $plugin_public, 'init_google_login', 5);
-        $this->loader->add_action('init', $plugin_public, 'handle_google_callback', 5);
+        // Google Login Hooks
+        $this->loader->add_action('init', $this->public, 'init_google_login', 5);
+        $this->loader->add_action('init', $this->public, 'handle_google_callback', 5);
 
-        // رهگیری خطاهای ارسال ایمیل
-        $this->loader->add_action( 'wp_mail_failed', $plugin_public, 'handle_wp_mail_failed', 10, 1 );
+        // Discord Login Hooks
+        $this->loader->add_action('init', $this->public, 'init_discord_login', 5);
+        $this->loader->add_action('init', $this->public, 'handle_discord_callback', 5);
 
-        // Register Shortcode
-        add_shortcode('slr_otp_form', [$plugin_public, 'render_slr_otp_form_shortcode']);
+        // LinkedIn Login Hooks
+        $this->loader->add_action('init', $this->public, 'init_linkedin_login', 5);
+        $this->loader->add_action('init', $this->public, 'handle_linkedin_callback', 5);
+
+        // GitHub Login Hooks
+        $this->loader->add_action('init', $this->public, 'init_github_login', 5);
+        $this->loader->add_action('init', $this->public, 'handle_github_callback', 5);
+
+        // General Hooks
+        $this->loader->add_action('wp_mail_failed', $this->public, 'handle_wp_mail_failed', 10, 1);
+        add_shortcode('slr_otp_form', [$this->public, 'render_slr_otp_form_shortcode']);
     }
-    
+
     /**
      * Initialize integrations like WooCommerce.
      * @access private

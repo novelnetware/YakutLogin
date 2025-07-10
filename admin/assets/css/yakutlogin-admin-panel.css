@@ -50,6 +50,7 @@
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border-color);
     position: relative;
+    z-index: 31;
 }
 
 
@@ -94,7 +95,7 @@
 .nav-links li {
     position: relative;
     padding: 0.8rem 1rem;
-    margin: 0.5rem 0;
+    margin: 1.5rem 0;
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -102,6 +103,7 @@
     transition: all var(--transition-speed);
     color: #ffffff;
     font-family: 'Vazirmatn' !important;
+    font-size: 18px;
 }
 
 .nav-links li:hover,
@@ -142,12 +144,14 @@
 
 /* --- Main Content Area --- */
 .main-content {
+    position: relative;
     flex: 1;
     background: transparent; /* It's inside .dashboard, no need for its own background */
     border-radius: 20px;
     padding: 2rem 5rem;
     background: var(--bg-primary);
     margin-right: -50px;
+    z-index: 30;
 }
 
 h3{
@@ -158,13 +162,23 @@ h3{
 
 .content-section {
     display: none;
+    transition: filter 0.3s ease-in-out;
+}
+
+.main-content.is-loading .spinner-box {
+    display: flex;
+}
+
+.main-content.is-loading .content-section {
+    filter: blur(5px);
+    pointer-events: none; /* از کلیک روی محتوا جلوگیری می‌کند */
 }
 
 .content-section.active {
-    display: block;
+   display: block;
     animation: fadeIn 0.3s ease;
-    text-align : right;
-    padding-right : 10px;
+    text-align: right;
+    padding-right: 10px;
 }
 
 .section-header {
@@ -179,8 +193,9 @@ h3{
     margin: 0 0 5px;
     color: var(--text-primary);
     font-size: 1.8rem;
-    margin-bottom: 15px;
+    margin-bottom: 45px;
     font-family: 'Vazirmatn' !important;
+    text-align: center;
 }
 
 .section-header p {
@@ -216,6 +231,34 @@ h3{
     margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.input-with-button{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 5px;
+}
+
+.input-with-button input[type=text] {
+    width: 65%;
+    padding: 5px;
+
+}
+h3{
+    padding: 10px;
+}
+
+#yakutlogin-test-telegram{
+    width: 30%;
+    font-family: 'VazirMatn' !important;
+    font-size: 16px;
+    font-weight: 600;
+    background-color: #52c234;
+    color: #12141a;
+    border: none;
 }
 
 .setting-option {
@@ -251,12 +294,14 @@ h3{
 .setting-option.column .wp-editor-wrap { /* Target the editor */
     width: 100%;
     font-family: 'Vazirmatn' !important;
+    direction: rtl !important;
 }
 
 .setting-input{
     background-color:#161515;
     color: #ffffff;
     font-family: 'Vazirmatn' !important;
+    padding: 5px;
 
 }
 
@@ -277,31 +322,6 @@ h3{
     display: block;
     text-align: left;
     font-family: 'Vazirmatn' !important;
-}
-
-.save-button-container {
-    margin-top: 2rem;
-    text-align: left;
-}
-
-.filter-button {
-    padding: 0.8rem 1.5rem;
-    background: var(--accent-primary);
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: 'Vazirmatn' !important;
-}
-
-.filter-button:hover {
-    background: #5a48b3;
 }
 
 .notice.notice-warning.inline {
@@ -381,6 +401,37 @@ input:checked + .slider:before {
     width: 30%;
 }
 
+.save-button-container {
+    margin-top: 2rem;
+    text-align: left;
+}
+
+.filter-button {
+    padding: 0.8rem 1.5rem;
+    background: var(--accent-primary);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Vazirmatn' !important;
+}
+
+.filter-button:hover {
+    background: #5a48b3;
+}
+
+.description {
+    font-family: 'Vazirmatn' !important;
+    padding-top: 10px;
+}
+
+
 .setting-input{
     background-color: #25252560 !important;
     color: #ffffff !important;
@@ -392,4 +443,70 @@ input:checked + .slider:before {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- BTN SUBMIT --- */
+
+ 
+/* SPINNING CIRCLE */
+
+.spinner-box {
+position: absolute; /* اسپینر را از جریان عادی خارج می‌کند */
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* دقیقا در مرکز قرار می‌دهد */
+    z-index: 10; /* تضمین می‌کند که اسپینر روی همه چیز باشد */
+  background-color: transparent;
+  display: none;
+  
+}
+
+.leo-border-1 {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  padding: 3px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background: rgb(63,249,220);
+  background: linear-gradient(0deg, rgba(63,249,220,0.1) 33%, rgba(63,249,220,1) 100%);
+  animation: spin3D 1.8s linear 0s infinite;
+}
+
+.leo-core-1 {
+  width: 100%;
+  height: 100%;
+  background-color: #37474faa;
+  border-radius: 50%;
+}
+
+.leo-border-2 {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  padding: 3px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background: rgb(251, 91, 83);
+  background: linear-gradient(0deg, rgba(251, 91, 83, 0.1) 33%, rgba(251, 91, 83, 1) 100%);
+  animation: spin3D 2.2s linear 0s infinite;
+}
+
+.leo-core-2 {
+  width: 100%;
+  height: 100%;
+  background-color: #1d2630aa;
+  border-radius: 50%;
+}
+@keyframes spin3D {
+  from {
+    transform: rotate3d(.5,.5,.5, 360deg);
+  }
+  to{
+    transform: rotate3d(0deg);
+  }
 }

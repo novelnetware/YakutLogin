@@ -3,7 +3,7 @@
  * Plugin Name:       YakutLogin
  * Plugin URI:        https://yakut.ir/plugins/yakutlogin/
  * Description:       Enables SMS-based login and registration with OTP, email OTP, Google Login, and CAPTCHA support.
- * Version:           1.2.9
+ * Version:           1.3.5
  * Author:            Yakut
  * Author URI:        https://yakut.ir/
  * License:           GPL v2 or later
@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define constants
  */
-define( 'SLR_PLUGIN_VERSION', '1.2.9' ); // SLR for SMS Login Register
+define( 'SLR_PLUGIN_VERSION', '1.3.5' ); // SLR for SMS Login Register
 define( 'SLR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SLR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -63,9 +63,14 @@ function slr_activate_plugin() {
         );
         update_option( 'slr_plugin_options', $default_options );
     }
+    // START: FIX for Database Error
     global $wpdb;
+    // Define the table name with the WordPress prefix
+    $table_name = $wpdb->prefix . 'slr_passkey_credentials';
     $charset_collate = $wpdb->get_charset_collate();
 
+    // This SQL seems to be for a future Passkey/WebAuthn feature.
+    // It's corrected now and will create the table properly.
     $sql = "CREATE TABLE $table_name (
         id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         user_id BIGINT(20) UNSIGNED NOT NULL,
@@ -80,6 +85,27 @@ function slr_activate_plugin() {
 
     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
     dbDelta( $sql );
+    // END: FIX
+
+    // START: Add code for the new API Keys table
+    $api_keys_table_name = $wpdb->prefix . 'slr_api_keys';
+    
+    // Find this SQL statement and modify it as shown below
+    $sql_api_keys = "CREATE TABLE $api_keys_table_name (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        public_key VARCHAR(64) NOT NULL,
+        secret_key TEXT NOT NULL, -- MODIFIED: Changed from secret_key_hash VARCHAR(255)
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_used TIMESTAMP NULL DEFAULT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        PRIMARY KEY (id),
+        UNIQUE KEY public_key (public_key)
+    ) $charset_collate;";
+
+    dbDelta( $sql_api_keys );
+    // END: Add code for the new API Keys table
 }
 register_activation_hook( __FILE__, 'slr_activate_plugin' );
 
@@ -122,6 +148,7 @@ function slr_register_elementor_widgets() {
         \Sms_Login_Register_Elementor\SLR_Elementor_Widget_Loader::instance();
     }
 }
-add_action( 'plugins_loaded', 'slr_register_elementor_widgets', 99 );
+// Replace the line above with this one
+add_action( 'init', 'slr_register_elementor_widgets' );
 
 ?>

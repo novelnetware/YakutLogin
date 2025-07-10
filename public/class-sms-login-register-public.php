@@ -179,6 +179,28 @@ public function __construct($plugin_name, $version, $theme_manager) {
 
         // 6. Prepare common data to pass to the theme's render method
         $options = get_option('slr_plugin_options');
+
+        // Telegram Login data
+$telegram_handler = new SLR_Telegram_Handler();
+$args['telegram_login_enabled'] = $telegram_handler->is_active();
+
+// START: Add Bale Login Data
+        $args['bale_login_enabled'] = !empty($options['bale_login_enabled']);
+        $args['bale_login_mode'] = $options['bale_login_mode'] ?? 'smart_only';
+        // END: Add Bale Login Data
+
+        // START: Add Discord Login Data
+        $args['discord_login_enabled'] = !empty($options['discord_login_enabled']);
+        // END: Add Discord Login Data
+
+        // START: Add LinkedIn Login Data
+        $args['linkedin_login_enabled'] = !empty($options['linkedin_login_enabled']);
+
+
+        // START: Add GitHub Login Data
+        $args['github_login_enabled'] = !empty($options['github_login_enabled']);
+        // END: Add GitHub Login Data
+
         
         // Google Login data
         $args['google_login_enabled'] = !empty($options['google_login_enabled']) && !empty($options['google_client_id']);
@@ -229,30 +251,6 @@ public function __construct($plugin_name, $version, $theme_manager) {
         return ob_get_clean();
     }
 
-     /**
-     * Determines if an input is an email or a phone number.
-     *
-     * @param string $input The user input.
-     * @return array Containing 'type' (email, phone, invalid) and 'value' (sanitized/normalized).
-     */
-    private function determine_identifier_type( $input ) {
-        $sanitized_input = sanitize_text_field( trim( $input ) );
-
-        // Check for email
-        if ( is_email( $sanitized_input ) ) {
-            return [ 'type' => 'email', 'value' => $sanitized_input ];
-        }
-
-        // Check for phone number
-        $gateway_manager = new SLR_Gateway_Manager();
-        $normalized_phone = $gateway_manager->normalize_iranian_phone( $sanitized_input );
-        if ( $normalized_phone ) {
-            return [ 'type' => 'phone', 'value' => $normalized_phone ];
-        }
-
-        return [ 'type' => 'invalid', 'value' => null ];
-    }
-
 /**
      * Enqueues the CORE scripts and styles for the plugin.
      * This function is designed to run only once per page load.
@@ -290,6 +288,11 @@ public function __construct($plugin_name, $version, $theme_manager) {
                 'ajax_url'                  => admin_url('admin-ajax.php'),
                 'send_otp_nonce'            => wp_create_nonce('slr_send_otp_nonce'),
                 'process_form_nonce'        => wp_create_nonce('slr_process_form_nonce'),
+                'telegram_request_nonce'    => wp_create_nonce('slr_telegram_request_nonce'),
+                'telegram_polling_nonce'    => wp_create_nonce('slr_telegram_polling_nonce'),
+                'bale_otp_nonce'            => wp_create_nonce('slr_bale_otp_nonce'),
+                'bale_bot_nonce'            => wp_create_nonce('slr_bale_bot_nonce'),
+                'bale_polling_nonce'        => wp_create_nonce('slr_bale_polling_nonce'),
                 'get_auth_options_nonce'    => wp_create_nonce('yakutlogin_get_auth_options_nonce'),
                 'verify_auth_nonce'         => wp_create_nonce('yakutlogin_verify_auth_nonce'),
                 'text_sending_otp'          => __('در حال ارسال کد...', 'yakutlogin'),
@@ -325,120 +328,6 @@ public function enqueue_captcha_scripts_if_needed() {
         wp_enqueue_script($script_handle, $script_url, [], null, true);
     }
 }
-
-    /**
-     * Adds OTP field and send OTP button to the login form (wp-login.php).
-     * (This method and the register form one might need refactoring to use the new args of get_otp_form_html if you want full consistency)
-     * @since 1.0.0
-     */
-    public function add_otp_fields_to_login_form() {
-        $this->maybe_enqueue_scripts();
-        $options = get_option( 'slr_plugin_options' );
-        // Check if any OTP method (email or SMS via a configured provider) is potentially available
-        $sms_gateway_manager = new SLR_Gateway_Manager();
-        $sms_enabled = $sms_gateway_manager->get_active_gateway() ? true : false;
-        $email_otp_enabled = isset( $options['email_otp_enabled'] ) && $options['email_otp_enabled'];
-
-        if ( ! $email_otp_enabled && ! $sms_enabled ) {
-            return;
-        }
-        ?>
-        <div class="slr-otp-wp-login-section">
-            <h4><?php _e('ورود با رمز یکبار مصرف', 'yakutlogin'); ?></h4>
-            <?php if ($sms_enabled): // Add phone field for wp-login.php if SMS is possible ?>
-            <p>
-                <label for="slr_phone_login_wp"><?php _e('تلفن همراه', 'yakutlogin'); ?></label>
-                <input type="tel" name="slr_phone_wp_login" id="slr_phone_login_wp" class="input" value="" size="20" />
-            </p>
-            <?php endif; ?>
-            <?php if ($email_otp_enabled): // Still show email field if email OTP is on ?>
-            <p class="description"><em><?php _e('نام کاربری', 'yakutlogin'); ?></em></p>
-            <?php endif; ?>
-            <p>
-                <button type="button" id="slr-send-otp-button-login-wp" 
-                        data-email-field="#user_login" 
-                        data-phone-field="#slr_phone_login_wp" <?php // Added phone field data attribute ?>
-                        data-message-target="#slr-message-login-wp" 
-                        class="button button-secondary slr-send-otp-button-generic">
-                    <?php _e( 'ارسال پیامک', 'yakutlogin' ); ?>
-                </button>
-            </p>
-            <p>
-                <label for="slr_otp_code_login_wp"><?php _e( 'کد یکبار مصرف', 'yakutlogin' ); ?></label>
-                <input type="text" name="slr_otp_code" id="slr_otp_code_login_wp" class="input" value="" size="20" autocomplete="off" />
-            </p>
-            <div id="slr-message-login-wp" class="slr-message-area" style="margin-top:10px;"></div>
-            <?php
-            // CAPTCHA for wp-login.php forms
-            $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
-            if ( $captcha_type === 'recaptcha_v2' && !empty($options['recaptcha_v2_site_key']) ) {
-                echo '<div style="margin-bottom:10px;" class="g-recaptcha" data-sitekey="' . esc_attr( $options['recaptcha_v2_site_key'] ) . '"></div>';
-            } elseif ( $captcha_type === 'turnstile' && !empty($options['turnstile_site_key']) ) {
-                echo '<div style="margin-bottom:10px;" class="cf-turnstile" data-sitekey="' . esc_attr( $options['turnstile_site_key'] ) . '"></div>';
-            }
-            ?>
-            <?php wp_nonce_field( 'slr_send_otp_nonce', 'slr_send_otp_nonce_field_login_wp' ); // Nonce for sending OTP ?>
-            <?php // The main form submission for wp-login.php handles its own nonces. slr_otp_code is verified by authenticate hook. ?>
-            <input type="hidden" name="slr_action" value="login_with_otp">
-        </div>
-        <?php
-    }
-
-    /**
-     * Adds OTP field and send OTP button to the registration form (wp-login.php).
-     * @since 1.0.0
-     */
-    public function add_otp_fields_to_register_form() {
-        $this->maybe_enqueue_scripts();
-        $options = get_option( 'slr_plugin_options' );
-        $sms_gateway_manager = new SLR_Gateway_Manager();
-        $sms_enabled = $sms_gateway_manager->get_active_gateway() ? true : false;
-        $email_otp_enabled = isset( $options['email_otp_enabled'] ) && $options['email_otp_enabled'];
-
-        if ( ! $email_otp_enabled && ! $sms_enabled ) {
-            return;
-        }
-        ?>
-        <div class="slr-otp-wp-register-section">
-            <h4><?php _e('احراز توسط کد یکبار مصرف', 'yakutlogin'); ?></h4>
-            <?php if ($sms_enabled): ?>
-            <p>
-                <label for="slr_phone_register_wp"><?php _e('تلفن همراه', 'yakutlogin'); ?></label>
-                <input type="tel" name="slr_phone_wp_register" id="slr_phone_register_wp" class="input" value="" size="20" />
-                 <p class="description"><em><?php _e('کد تایید به ایمیل یا شماره موبایل شما ارسال خواهد شد', 'yakutlogin'); ?></em></p>
-            </p>
-            <?php else: ?>
-            <p class="description"><em><?php _e( 'کد تایید به ایمیل یا شماره موبایل شما ارسال خواهد شد', 'yakutlogin' ); ?></em></p>
-            <?php endif; ?>
-            <p>
-                <button type="button" id="slr-send-otp-button-register-wp" 
-                        data-email-field="#user_email" 
-                        data-phone-field="#slr_phone_register_wp" <?php // Added phone field data attribute ?>
-                        data-message-target="#slr-message-register-wp" 
-                        class="button button-secondary slr-send-otp-button-generic">
-                    <?php _e( 'ارسال کد تایید', 'yakutlogin' ); ?>
-                </button>
-            </p>
-            <p>
-                <label for="slr_otp_code_register_wp"><?php _e( 'ارسال کد تایید', 'yakutlogin' ); ?></label>
-                <input type="text" name="slr_otp_code" id="slr_otp_code_register_wp" class="input" value="" size="20" autocomplete="off" />
-            </p>
-            <div id="slr-message-register-wp" class="slr-message-area" style="margin-top:10px;"></div>
-            <?php
-            // CAPTCHA for wp-login.php forms
-            $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
-            if ( $captcha_type === 'recaptcha_v2' && !empty($options['recaptcha_v2_site_key']) ) {
-                echo '<div style="margin-bottom:10px;" class="g-recaptcha" data-sitekey="' . esc_attr( $options['recaptcha_v2_site_key'] ) . '"></div>';
-            } elseif ( $captcha_type === 'turnstile' && !empty($options['turnstile_site_key']) ) {
-                echo '<div style="margin-bottom:10px;" class="cf-turnstile" data-sitekey="' . esc_attr( $options['turnstile_site_key'] ) . '"></div>';
-            }
-            ?>
-            <?php wp_nonce_field( 'slr_send_otp_nonce', 'slr_send_otp_nonce_field_register_wp' ); ?>
-            <input type="hidden" name="slr_action" value="register_with_otp">
-        </div>
-        <?php
-    }
-
 
     /**
  * Sends an OTP email to the user with proper headers.
@@ -572,141 +461,6 @@ public function send_otp_email( $email_address, $otp ) {
             wp_send_json_error( array( 'message' => $message_on_fail ) );
         }
     }
-
-    /**
-     * Authenticates a user with OTP if provided (for wp-login.php).
-     * A
-     */
-    public function authenticate_with_otp( $user, $username, $password ) {
-        
-        if ( isset( $_POST['slr_otp_code'] ) && ! empty( $_POST['slr_otp_code'] ) && isset( $_POST['slr_action'] ) && $_POST['slr_action'] === 'login_with_otp' ) {
-            $submitted_otp = sanitize_text_field( $_POST['slr_otp_code'] );
-            
-            $identifier_from_username_field = sanitize_text_field( $username );
-            $identifier_from_phone_field = isset($_POST['slr_phone_wp_login']) ? sanitize_text_field($_POST['slr_phone_wp_login']) : '';
-            
-            $identifier_for_otp = '';
-            $gateway_manager = class_exists('SLR_Gateway_Manager') ? new SLR_Gateway_Manager() : null;
-
-            if (!empty($identifier_from_phone_field) && $gateway_manager) {
-                $normalized_phone = $gateway_manager->normalize_iranian_phone($identifier_from_phone_field);
-                if ($normalized_phone) {
-                    $identifier_for_otp = $normalized_phone;
-                }
-            }
-            
-            if (empty($identifier_for_otp)) { // Fallback to email/username if phone not used or invalid
-                 if (is_email($identifier_from_username_field)) {
-                    $identifier_for_otp = $identifier_from_username_field;
-                } else {
-                    $user_obj_by_login = get_user_by('login', $identifier_from_username_field);
-                    if ($user_obj_by_login && !empty($user_obj_by_login->user_email)) {
-                        $identifier_for_otp = $user_obj_by_login->user_email;
-                    } else if (!empty($identifier_from_username_field)){ // if user entered something but it's not email/valid username
-                         return new WP_Error( 'slr_otp_error', __( 'لطفا یک ایمیل معتبر وارد کنید', 'yakutlogin' ) );
-                    }
-                }
-            }
-
-            if ( empty( $identifier_for_otp ) ) {
-                return new WP_Error( 'slr_otp_error', __( 'نام کاربری ، ایمیل یا شماره همراه شما نادرست میباشد', 'yakutlogin' ) );
-            }
-            if( empty( $submitted_otp ) ){
-                 return new WP_Error( 'slr_otp_error', __( 'کد تایید نمیتواند خالی باشد', 'yakutlogin' ) );
-            }
-            
-            // CAPTCHA for wp-login.php form submission
-            $captcha_handler = class_exists('SLR_Captcha_Handler') ? new SLR_Captcha_Handler() : null;
-            $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
-            if ($captcha_handler) {
-                $options = get_option('slr_plugin_options');
-                $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
-                if ($captcha_type !== 'none' && !$captcha_handler->verify_captcha( $captcha_response_token )) {
-                     return new WP_Error('slr_captcha_error', __('کپچا تایید نشد.', 'yakutlogin'));
-                }
-            }
-
-
-            if ( class_exists('Sms_Login_Register_Otp_Handler') && Sms_Login_Register_Otp_Handler::verify_otp( $identifier_for_otp, $submitted_otp ) ) {
-                $user_obj_to_login = null;
-                if (is_email($identifier_for_otp)) {
-                    $user_obj_to_login = get_user_by( 'email', $identifier_for_otp );
-                } else if (strpos($identifier_for_otp, '+') === 0 && $gateway_manager) { // It's a normalized phone
-                    $users_by_phone = get_users(array('meta_key' => 'slr_phone_number', 'meta_value' => $identifier_for_otp, 'number' => 1, 'count_total' => false));
-                    if (!empty($users_by_phone)) $user_obj_to_login = $users_by_phone[0];
-                }
-                // Fallback to username field if user was found by phone, but login was via username field originally
-                if (!$user_obj_to_login && !is_email($identifier_from_username_field)) {
-                     $user_obj_to_login = get_user_by('login', $identifier_from_username_field);
-                }
-
-
-                if ( $user_obj_to_login ) {
-                    Sms_Login_Register_Otp_Handler::delete_otp( $identifier_for_otp );
-                    return $user_obj_to_login;
-                } else {
-                    return new WP_Error( 'slr_otp_error', __( 'اکانت شما وجود ندارد.', 'yakutlogin' ) );
-                }
-            } else {
-                return new WP_Error( 'slr_otp_error', __( 'کد تایید شما نادرست میباشد', 'yakutlogin' ) );
-            }
-        } elseif ( isset( $_POST['slr_action'] ) && $_POST['slr_action'] === 'login_with_otp' && ( !isset($_POST['slr_otp_code']) || empty($_POST['slr_otp_code']) ) ) {
-             return new WP_Error( 'slr_otp_error', __( 'لطفا کد تایید ارسال شده به ایمیل یا شماره همراه را وارد کنید', 'yakutlogin' ) );
-        }
-        return $user;
-    }
-
-
-    /**
-     * Validates OTP during user registration (for wp-login.php).
-     * (No changes from Phase 13 needed here)
-     */
-    public function validate_registration_with_otp( $errors, $sanitized_user_login, $user_email ) {
-        // ... (کد قبلی با بررسی کپچا بدون تغییر) ...
-        if ( isset( $_POST['slr_action'] ) && $_POST['slr_action'] === 'register_with_otp' ) {
-            // CAPTCHA for wp-login.php registration form submission
-            $captcha_handler = class_exists('SLR_Captcha_Handler') ? new SLR_Captcha_Handler() : null;
-            $captcha_response_token = isset( $_POST['g-recaptcha-response'] ) ? $_POST['g-recaptcha-response'] : (isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '');
-            if ($captcha_handler) {
-                $options = get_option('slr_plugin_options');
-                $captcha_type = isset( $options['captcha_type'] ) ? $options['captcha_type'] : 'none';
-                if ($captcha_type !== 'none' && !$captcha_handler->verify_captcha( $captcha_response_token )) {
-                    $errors->add('slr_captcha_error', __('کپچا تایید نشد.', 'yakutlogin'));
-                    return $errors; // Return early if CAPTCHA fails
-                }
-            }
-
-            $submitted_otp = isset($_POST['slr_otp_code']) ? sanitize_text_field( $_POST['slr_otp_code'] ) : '';
-            $phone_for_otp = isset($_POST['slr_phone_wp_register']) ? sanitize_text_field($_POST['slr_phone_wp_register']) : '';
-            $identifier_for_otp = $user_email; // Default to email from registration form
-
-            $gateway_manager = class_exists('SLR_Gateway_Manager') ? new SLR_Gateway_Manager() : null;
-            if (!empty($phone_for_otp) && $gateway_manager) {
-                $normalized_phone = $gateway_manager->normalize_iranian_phone($phone_for_otp);
-                if ($normalized_phone) {
-                    // If phone is provided for registration OTP, it should be the primary identifier for verification
-                    $identifier_for_otp = $normalized_phone;
-                }
-            }
-
-            if ( empty($submitted_otp) ) {
-                $errors->add( 'slr_otp_required', __( 'لطفا کد تایید ارسال شده به ایمیل یا تلفن همراه را وارد کنید', 'yakutlogin' ) );
-            } elseif ( class_exists('Sms_Login_Register_Otp_Handler') && !Sms_Login_Register_Otp_Handler::verify_otp( $identifier_for_otp, $submitted_otp ) ) {
-                $errors->add( 'slr_otp_error', __( 'کد تایید وارد شده نادرست میباشد', 'yakutlogin' ) );
-            } else {
-                if (class_exists('Sms_Login_Register_Otp_Handler')) Sms_Login_Register_Otp_Handler::delete_otp( $identifier_for_otp );
-                // If phone was used for OTP and it's a new registration, save it to user meta.
-                // This will be done after user is created by WordPress core.
-                // We can hook into 'user_register' to save the phone if $identifier_for_otp was phone.
-                if (strpos($identifier_for_otp, '+') === 0 && $gateway_manager) { // Was a phone number
-                    // Store this phone to be saved later on 'user_register' hook
-                    set_transient('slr_pending_phone_for_user_' . $sanitized_user_login, $identifier_for_otp, HOUR_IN_SECONDS);
-                }
-            }
-        }
-        return $errors;
-    }
-
      /**
      * AJAX handler for processing OTP login/registration.
      * (Rewritten for clarity, security, and robustness)
@@ -996,33 +750,536 @@ $redirect_to      = isset( $_POST['slr_redirect_to'] ) ? esc_url_raw( $_POST['sl
         }
     }
     /**
-     * Saves the phone number from transient to user meta after registration on wp-login.php.
-     *
-     * @since 1.0.4
-     * @param int $user_id User ID.
+     * AJAX handler to generate a new Telegram login request.
+     * Returns data needed to render the QR code and initiate the process.
+     * @since 1.3.0
+     */
+    public function ajax_generate_telegram_request() {
+        check_ajax_referer('slr_telegram_request_nonce', 'security');
+
+        $telegram_handler = new SLR_Telegram_Handler();
+        if (!$telegram_handler->is_active()) {
+            wp_send_json_error(['message' => __('Telegram login is not enabled.', 'yakutlogin')]);
+        }
+
+        $options = get_option('slr_plugin_options');
+        $bot_username = $options['telegram_bot_username'] ?? null;
+
+        // Ensure the bot username is known before creating a link
+        if (empty($bot_username)) {
+            wp_send_json_error(['message' => __('Telegram bot username is not configured. Please test the connection in the admin panel first.', 'yakutlogin')]);
+        }
+        
+        $unique_key = wp_generate_password(32, false, false);
+        $session_id = wp_generate_password(32, false, false);
+
+        set_transient('slr_tg_key_' . $unique_key, $session_id, 5 * MINUTE_IN_SECONDS);
+        set_transient('slr_tg_session_' . $session_id, ['status' => 'pending'], 5 * MINUTE_IN_SECONDS);
+
+        wp_send_json_success([
+            'bot_link'   => sprintf('https://t.me/%s?start=%s', $bot_username, $unique_key),
+            'unique_key' => $unique_key,
+            'session_id' => $session_id,
+        ]);
+    }
+
+    /**
+     * AJAX handler for long-polling to check the Telegram login status.
+     * @since 1.3.0
+     */
+    public function ajax_check_telegram_login_status() {
+        check_ajax_referer( 'slr_telegram_polling_nonce', 'security' );
+        
+        $session_id = isset( $_POST['session_id'] ) ? sanitize_key( $_POST['session_id'] ) : '';
+        if ( empty( $session_id ) ) {
+            wp_send_json_error( [ 'status' => 'error', 'message' => 'Invalid session.' ] );
+        }
+
+        $session_data = get_transient( 'slr_tg_session_' . $session_id );
+
+        if ( false === $session_data ) {
+            wp_send_json_success( [ 'status' => 'expired' ] );
+        }
+
+        if ( 'success' === $session_data['status'] && ! empty( $session_data['user_id'] ) ) {
+            $user_id = $session_data['user_id'];
+            $user = get_user_by( 'id', $user_id );
+
+            if ( $user ) {
+                // Log the user in
+                wp_clear_auth_cookie();
+                wp_set_current_user( $user->ID, $user->user_login );
+                wp_set_auth_cookie( $user->ID, true );
+                do_action( 'wp_login', $user->user_login, $user );
+
+                // Clean up the transient
+                delete_transient( 'slr_tg_session_' . $session_id );
+
+                // Get redirect URL
+                $redirect_url = apply_filters( 'slr_login_redirect_url_default', admin_url(), $user );
+
+                wp_send_json_success( [
+                    'status'       => 'success',
+                    'redirect_url' => apply_filters( 'slr_login_redirect_url', $redirect_url, $user ),
+                ] );
+            }
+        }
+        
+        // Default response if status is not 'success' or 'expired'
+        wp_send_json_success( [ 'status' => $session_data['status'] ?? 'pending' ] );
+    }
+    /**
+     * AJAX handler to send an OTP via the Bale OTP service.
      */
-    public function save_pending_phone_number_on_registration( $user_id ) {
-        $user = get_userdata( $user_id );
-        if ( ! $user ) {
+    public function ajax_send_bale_otp() {
+        check_ajax_referer('slr_bale_otp_nonce', 'security');
+
+        $phone_number = isset($_POST['phone_number']) ? sanitize_text_field($_POST['phone_number']) : '';
+        if (empty($phone_number)) {
+            wp_send_json_error(['message' => 'لطفا شماره تلفن را وارد کنید.']);
+        }
+        
+        // Normalize the number to international format for storing in transient
+        $normalized_phone = (new SLR_Gateway_Manager())->normalize_iranian_phone($phone_number);
+        if (!$normalized_phone) {
+             wp_send_json_error(['message' => 'فرمت شماره تلفن نامعتبر است.']);
+        }
+        
+        $otp_handler = new SLR_Bale_Otp_Handler();
+        $otp_code = Sms_Login_Register_Otp_Handler::generate_otp();
+
+        // Store OTP before sending
+        Sms_Login_Register_Otp_Handler::store_otp($normalized_phone, $otp_code);
+
+        if ($otp_handler->send_otp($normalized_phone, $otp_code)) {
+            wp_send_json_success(['message' => 'کد تایید با موفقیت به اپلیکیشن بله شما ارسال شد.']);
+        } else {
+            // If sending failed, delete the stored OTP
+            Sms_Login_Register_Otp_Handler::delete_otp($normalized_phone);
+            wp_send_json_error(['message' => 'در ارسال کد تایید از طریق بله خطایی رخ داد.']);
+        }
+    }
+
+    /**
+     * AJAX handler to generate a new Bale Smart (Bot) Login request.
+     */
+    public function ajax_generate_bale_bot_request() {
+        check_ajax_referer('slr_bale_bot_nonce', 'security');
+
+        $unique_code = Sms_Login_Register_Otp_Handler::generate_otp(6); // A 6-digit code
+        $session_id = wp_generate_password(32, false, false);
+
+        set_transient('slr_bale_code_' . $unique_code, $session_id, 5 * MINUTE_IN_SECONDS);
+        set_transient('slr_bale_session_' . $session_id, ['status' => 'pending'], 5 * MINUTE_IN_SECONDS);
+
+        wp_send_json_success([
+            'unique_code' => $unique_code,
+            'session_id'  => $session_id,
+        ]);
+    }
+
+    /**
+     * AJAX handler for polling Bale Smart (Bot) Login status.
+     */
+    public function ajax_check_bale_login_status() {
+        check_ajax_referer('slr_bale_polling_nonce', 'security');
+        
+        $session_id = isset($_POST['session_id']) ? sanitize_key($_POST['session_id']) : '';
+        if (empty($session_id)) {
+            wp_send_json_error(['status' => 'error', 'message' => 'Invalid session.']);
+        }
+
+        $session_data = get_transient('slr_bale_session_' . $session_id);
+
+        if (false === $session_data) {
+            wp_send_json_success(['status' => 'expired']);
             return;
         }
 
-        $transient_key = 'slr_pending_phone_for_user_' . $user->user_login;
-        $phone_number = get_transient( $transient_key );
-
-        if ( $phone_number ) {
-            // Ensure it's a normalized phone number (should already be, but double check)
-            $gateway_manager = class_exists('SLR_Gateway_Manager') ? new SLR_Gateway_Manager() : null;
-            if ($gateway_manager) {
-                $normalized_phone = $gateway_manager->normalize_iranian_phone($phone_number);
-                if ($normalized_phone) {
-                    update_user_meta( $user_id, 'slr_phone_number', $normalized_phone );
-                }
-            } else { // Fallback if gateway manager somehow not available
-                 update_user_meta( $user_id, 'slr_phone_number', $phone_number );
+        if ('success' === ($session_data['status'] ?? 'pending') && !empty($session_data['user_id'])) {
+            $user = get_user_by('id', $session_data['user_id']);
+            if ($user) {
+                wp_clear_auth_cookie();
+                wp_set_current_user($user->ID, $user->user_login);
+                wp_set_auth_cookie($user->ID, true);
+                do_action('wp_login', $user->user_login, $user);
+                delete_transient('slr_bale_session_' . $session_id);
+                
+                $redirect_url = apply_filters('slr_login_redirect_url_default', admin_url(), $user);
+                wp_send_json_success([
+                    'status'       => 'success',
+                    'redirect_url' => apply_filters('slr_login_redirect_url', $redirect_url, $user),
+                ]);
             }
-            delete_transient( $transient_key );
         }
+        
+        wp_send_json_success(['status' => $session_data['status'] ?? 'pending']);
+    }
+
+    /**
+     * Determines if an input is an email or a phone number.
+     * Made public to be accessible from the REST API class.
+     *
+     * @param string $input The user input.
+     * @return array Containing 'type' (email, phone, invalid) and 'value' (sanitized/normalized).
+     */
+public function determine_identifier_type($input) {
+    $sanitized_input = sanitize_text_field(trim($input));
+    if (is_email($sanitized_input)) {
+        return ['type' => 'email', 'value' => $sanitized_input];
+    }
+    $normalized_phone = (new SLR_Gateway_Manager())->normalize_iranian_phone($sanitized_input);
+    if ($normalized_phone) {
+        return ['type' => 'phone', 'value' => $normalized_phone];
+    }
+    return ['type' => 'invalid', 'value' => null];
+}
+
+    /**
+     * Finds a user by identifier (email/phone). If not found, creates a new one.
+     * Made public to be accessible from the REST API class.
+     *
+     * @param string $identifier The normalized email or phone.
+     * @param string $id_type The type of identifier ('email' or 'phone').
+     * @return WP_User|WP_Error The user object on success, or a WP_Error object on failure.
+     */
+    public function find_or_create_user(string $identifier, string $id_type) {
+        $user = null;
+        if ($id_type === 'email') {
+            $user = get_user_by('email', $identifier);
+        } elseif ($id_type === 'phone') {
+            $users = get_users(['meta_key' => 'slr_phone_number', 'meta_value' => $identifier, 'number' => 1]);
+            if (!empty($users)) {
+                $user = $users[0];
+            }
+        }
+
+        if ($user) {
+            return $user; // User found, return it.
+        }
+
+        // User not found, create a new one.
+        $random_password = wp_generate_password(16, false);
+        $user_id = 0;
+
+        if ($id_type === 'email') {
+            $username = 'user_' . substr(md5($identifier), 0, 8);
+            $user_id = wp_create_user($username, $random_password, $identifier);
+        } elseif ($id_type === 'phone') {
+            $username = 'user_' . preg_replace('/[^0-9]/', '', $identifier);
+            $temp_email = $username . '@' . wp_parse_url(home_url(), PHP_URL_HOST);
+            $user_id = wp_create_user($username, $random_password, $temp_email);
+            if (!is_wp_error($user_id)) {
+                update_user_meta($user_id, 'slr_phone_number', $identifier);
+            }
+        }
+
+        if (is_wp_error($user_id)) {
+            return new WP_Error('user_creation_failed', $user_id->get_error_message(), ['status' => 500]);
+        }
+        
+        return get_user_by('id', $user_id);
+    }
+    public function init_discord_login() {
+        if (!isset($_GET['slr_action']) || $_GET['slr_action'] !== 'discord_login_init') return;
+        
+        if (!isset($_GET['slr_discord_nonce']) || !wp_verify_nonce($_GET['slr_discord_nonce'], 'slr_discord_login_init_nonce')) {
+            wp_die('Security check failed.');
+        }
+        
+        $options = get_option('slr_plugin_options');
+        if (empty($options['discord_login_enabled']) || empty($options['discord_client_id'])) {
+            wp_redirect(home_url());
+            exit;
+        }
+
+        $client_id = $options['discord_client_id'];
+        $redirect_uri = add_query_arg('slr_discord_auth_callback', '1', home_url('/'));
+        $state = wp_create_nonce('slr_discord_oauth_state');
+
+        $auth_url = 'https://discord.com/api/oauth2/authorize?' . http_build_query([
+            'client_id'     => $client_id,
+            'redirect_uri'  => $redirect_uri,
+            'response_type' => 'code',
+            'scope'         => 'identify email',
+            'state'         => $state,
+        ]);
+
+        wp_redirect($auth_url);
+        exit;
+    }
+
+public function handle_discord_callback() {
+    if (!isset($_GET['slr_discord_auth_callback'])) return;
+
+    $options = get_option('slr_plugin_options');
+    if (empty($options['discord_login_enabled']) || empty($options['discord_client_id']) || empty($options['discord_client_secret'])) {
+        return;
+    }
+
+    // بررسی state برای جلوگیری از حملات CSRF
+    if (empty($_GET['state']) || !wp_verify_nonce($_GET['state'], 'slr_discord_oauth_state')) {
+        wp_redirect(home_url('/?slr_login_error=discord_state_mismatch'));
+        exit;
+    }
+
+    // بررسی وجود خطا یا کد در پاسخ دیسکورد
+    if (isset($_GET['error']) || empty($_GET['code'])) {
+        wp_redirect(home_url('/?slr_login_error=discord_access_denied'));
+        exit;
+    }
+
+    // --- START: MODIFICATIONS (شروع اصلاحات) ---
+    
+    // 1. آدرس API دیسکورد برای گرفتن توکن
+    $token_url = 'https://discord.com/api/v10/oauth2/token';
+
+    // 2. ساختار صحیح درخواست به دیسکورد
+    $token_response = wp_remote_post($token_url, [
+        'headers' => [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ],
+        'body' => [
+            'client_id'     => $options['discord_client_id'],
+            'client_secret' => $options['discord_client_secret'],
+            'grant_type'    => 'authorization_code',
+            'code'          => sanitize_text_field($_GET['code']),
+            'redirect_uri'  => add_query_arg('slr_discord_auth_callback', '1', home_url('/')),
+            'scope'         => 'identify email',
+        ]
+    ]);
+
+    $response_body = wp_remote_retrieve_body($token_response);
+    $response_code = wp_remote_retrieve_response_code($token_response);
+    $token_data = json_decode($response_body, true);
+
+    // بررسی اینکه آیا access_token دریافت شده است یا نه
+    if (is_wp_error($token_response) || empty($token_data['access_token'])) {
+        // لاگ کردن خطا برای دیباگ در آینده
+        error_log('--- YakutLogin Discord Token Error ---');
+        error_log('Response Code: ' . $response_code);
+        error_log('Response Body: ' . $response_body);
+        if (is_wp_error($token_response)) {
+            error_log('WP_Error: ' . $token_response->get_error_message());
+        }
+        error_log('------------------------------------');
+        
+        wp_redirect(home_url('/?slr_login_error=discord_token_error'));
+        exit;
+    }
+    // --- END: MODIFICATIONS (پایان اصلاحات) ---
+
+    // دریافت اطلاعات کاربر از دیسکورد با استفاده از توکن
+    $user_response = wp_remote_get('https://discord.com/api/v10/users/@me', [
+        'headers' => ['Authorization' => 'Bearer ' . $token_data['access_token']]
+    ]);
+
+    $user_info = json_decode(wp_remote_retrieve_body($user_response), true);
+
+    if (empty($user_info['email'])) {
+        wp_redirect(home_url('/?slr_login_error=discord_no_email'));
+        exit;
+    }
+
+    // یافتن یا ساخت کاربر در وردپرس
+    $user = $this->find_or_create_user($user_info['email'], 'email');
+    if (is_wp_error($user)) {
+        wp_redirect(home_url('/?slr_login_error=user_creation_failed'));
+        exit;
+    }
+    
+    // لاگین کردن کاربر و ریدایرکت
+    wp_set_current_user($user->ID, $user->user_login);
+    wp_set_auth_cookie($user->ID, true);
+    do_action('wp_login', $user->user_login, $user);
+
+    wp_redirect(apply_filters('slr_social_login_redirect_url', home_url('/'), $user, 'discord'));
+    exit;
+}
+
+    public function init_linkedin_login() {
+        if (!isset($_GET['slr_action']) || $_GET['slr_action'] !== 'linkedin_login_init') return;
+
+        if (!isset($_GET['slr_linkedin_nonce']) || !wp_verify_nonce($_GET['slr_linkedin_nonce'], 'slr_linkedin_login_init_nonce')) {
+            wp_die('Security check failed.');
+        }
+        
+        $options = get_option('slr_plugin_options');
+        if (empty($options['linkedin_login_enabled']) || empty($options['linkedin_client_id'])) {
+            wp_redirect(home_url());
+            exit;
+        }
+
+        $state = wp_create_nonce('slr_linkedin_oauth_state');
+        set_transient('slr_linkedin_state_' . $state, 'valid', 5 * MINUTE_IN_SECONDS);
+
+        $auth_url = 'https://www.linkedin.com/oauth/v2/authorization?' . http_build_query([
+            'response_type' => 'code',
+            'client_id'     => $options['linkedin_client_id'],
+            'redirect_uri'  => add_query_arg('slr_linkedin_auth_callback', '1', home_url('/')),
+            'state'         => $state,
+            'scope'         => 'r_liteprofile r_emailaddress', // Scopes to get basic profile and email
+        ]);
+
+        wp_redirect($auth_url);
+        exit;
+    }
+
+    public function handle_linkedin_callback() {
+        if (!isset($_GET['slr_linkedin_auth_callback'])) return;
+
+        $options = get_option('slr_plugin_options');
+        if (empty($options['linkedin_login_enabled'])) return;
+        
+        if (empty($_GET['state']) || !get_transient('slr_linkedin_state_' . $_GET['state'])) {
+            wp_redirect(home_url('/?slr_login_error=linkedin_state_mismatch'));
+            exit;
+        }
+        delete_transient('slr_linkedin_state_' . $_GET['state']);
+
+        if (empty($_GET['code'])) {
+            wp_redirect(home_url('/?slr_login_error=linkedin_no_code'));
+            exit;
+        }
+
+        // Exchange code for access token
+        $token_response = wp_remote_post('https://www.linkedin.com/oauth/v2/accessToken', [
+            'body' => [
+                'grant_type'    => 'authorization_code',
+                'code'          => sanitize_text_field($_GET['code']),
+                'redirect_uri'  => add_query_arg('slr_linkedin_auth_callback', '1', home_url('/')),
+                'client_id'     => $options['linkedin_client_id'],
+                'client_secret' => $options['linkedin_client_secret'],
+            ]
+        ]);
+        
+        $token_data = json_decode(wp_remote_retrieve_body($token_response), true);
+        if (empty($token_data['access_token'])) {
+            wp_redirect(home_url('/?slr_login_error=linkedin_token_error'));
+            exit;
+        }
+
+        // Get user's primary email
+        $email_response = wp_remote_get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', [
+            'headers' => ['Authorization' => 'Bearer ' . $token_data['access_token']]
+        ]);
+        $email_data = json_decode(wp_remote_retrieve_body($email_response), true);
+        $email = $email_data['elements'][0]['handle~']['emailAddress'] ?? null;
+
+        if (empty($email)) {
+            wp_redirect(home_url('/?slr_login_error=linkedin_no_email'));
+            exit;
+        }
+
+        // Find or create the WordPress user
+        $user = $this->find_or_create_user($email, 'email');
+        if (is_wp_error($user)) {
+            wp_redirect(home_url('/?slr_login_error=user_creation_failed'));
+            exit;
+        }
+        
+        // Log the user in and redirect
+        wp_set_current_user($user->ID, $user->user_login);
+        wp_set_auth_cookie($user->ID, true);
+        do_action('wp_login', $user->user_login, $user);
+
+        wp_redirect(apply_filters('slr_social_login_redirect_url', home_url('/'), $user, 'linkedin'));
+        exit;
+    }
+
+    public function init_github_login() {
+        if (!isset($_GET['slr_action']) || $_GET['slr_action'] !== 'github_login_init') return;
+        if (!isset($_GET['slr_github_nonce']) || !wp_verify_nonce($_GET['slr_github_nonce'], 'slr_github_login_init_nonce')) {
+            wp_die('Security check failed.');
+        }
+        
+        $options = get_option('slr_plugin_options');
+        if (empty($options['github_login_enabled']) || empty($options['github_client_id'])) {
+            wp_redirect(home_url());
+            exit;
+        }
+
+        $state = wp_create_nonce('slr_github_oauth_state');
+        set_transient('slr_github_state_' . $state, 'valid', 5 * MINUTE_IN_SECONDS);
+
+        $auth_url = 'https://github.com/login/oauth/authorize?' . http_build_query([
+            'client_id'    => $options['github_client_id'],
+            'redirect_uri' => add_query_arg('slr_github_auth_callback', '1', home_url('/')),
+            'scope'        => 'read:user user:email',
+            'state'        => $state,
+        ]);
+
+        wp_redirect($auth_url);
+        exit;
+    }
+
+    public function handle_github_callback() {
+        if (!isset($_GET['slr_github_auth_callback'])) return;
+
+        $options = get_option('slr_plugin_options');
+        if (empty($options['github_login_enabled'])) return;
+
+        if (empty($_GET['state']) || !get_transient('slr_github_state_' . $_GET['state'])) {
+            wp_redirect(home_url('/?slr_login_error=github_state_mismatch'));
+            exit;
+        }
+        delete_transient('slr_github_state_' . $_GET['state']);
+
+        if (empty($_GET['code'])) {
+            wp_redirect(home_url('/?slr_login_error=github_no_code'));
+            exit;
+        }
+
+        // Exchange code for access token
+        $token_response = wp_remote_post('https://github.com/login/oauth/access_token', [
+            'headers' => ['Accept' => 'application/json'],
+            'body'    => [
+                'client_id'     => $options['github_client_id'],
+                'client_secret' => $options['github_client_secret'],
+                'code'          => sanitize_text_field($_GET['code']),
+            ]
+        ]);
+        
+        $token_data = json_decode(wp_remote_retrieve_body($token_response), true);
+        if (empty($token_data['access_token'])) {
+            wp_redirect(home_url('/?slr_login_error=github_token_error'));
+            exit;
+        }
+
+        // Get user's primary, verified email
+        $email_response = wp_remote_get('https://api.github.com/user/emails', [
+            'headers' => ['Authorization' => 'Bearer ' . $token_data['access_token']]
+        ]);
+        $emails = json_decode(wp_remote_retrieve_body($email_response), true);
+        $primary_email = null;
+        if (is_array($emails)) {
+            foreach ($emails as $email_item) {
+                if ($email_item['primary'] && $email_item['verified']) {
+                    $primary_email = $email_item['email'];
+                    break;
+                }
+            }
+        }
+
+        if (!$primary_email) {
+            wp_redirect(home_url('/?slr_login_error=github_no_verified_email'));
+            exit;
+        }
+
+        // Find or create the WordPress user
+        $user = $this->find_or_create_user($primary_email, 'email');
+        if (is_wp_error($user)) {
+            wp_redirect(home_url('/?slr_login_error=user_creation_failed'));
+            exit;
+        }
+
+        // Log the user in and redirect
+        wp_set_current_user($user->ID, $user->user_login);
+        wp_set_auth_cookie($user->ID, true);
+        do_action('wp_login', $user->user_login, $user);
+
+        wp_redirect(apply_filters('slr_social_login_redirect_url', home_url('/'), $user, 'github'));
+        exit;
     }
 
 // این متد جدید را به کلاس اضافه کنید

@@ -312,6 +312,155 @@ class SLR_Otp_Form_Widget extends Widget_Base {
                 'condition' => [ 'show_labels' => 'yes' ],
             ]
         );
+
+        // --- START: New Social Login Section ---
+        $this->start_controls_section(
+            'style_section_social_login',
+            [
+                'label' => __( 'ورود با شبکه‌های اجتماعی', 'yakutlogin' ),
+                'tab' => Controls_Manager::TAB_STYLE,
+            ]
+        );
+
+        // کنترل برای انتخاب حالت نمایش: دکمه کامل یا فقط آیکون
+        $this->add_control(
+            'social_buttons_layout',
+            [
+                'label' => __( 'حالت نمایش دکمه‌ها', 'yakutlogin' ),
+                'type' => Controls_Manager::CHOOSE,
+                'options' => [
+                    'default' => [
+                        'title' => __( 'آیکون و متن', 'yakutlogin' ),
+                        'icon' => 'eicon-button',
+                    ],
+                    'icon' => [
+                        'title' => __( 'فقط آیکون', 'yakutlogin' ),
+                        'icon' => 'eicon-gallery-grid',
+                    ],
+                ],
+                'default' => 'default',
+                'toggle' => false,
+                'prefix_class' => 'slr-social-layout-', // این کلاس به ویجت اضافه می‌شود: slr-social-layout-default یا slr-social-layout-icon
+            ]
+        );
+
+        // کنترل برای فاصله بین دکمه‌ها
+        $this->add_responsive_control(
+            'social_buttons_gap',
+            [
+                'label' => __( 'فاصله بین دکمه‌ها', 'yakutlogin' ),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => [ 'px' ],
+                'range' => [ 'px' => [ 'min' => 0, 'max' => 50 ] ],
+                'default' => [ 'unit' => 'px', 'size' => 10 ],
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row' => 'gap: {{SIZE}}{{UNIT}};',
+                ],
+            ]
+        );
+        
+        $this->add_responsive_control(
+            'social_icon_size',
+            [
+                'label' => __( 'اندازه آیکون', 'yakutlogin' ),
+                'type' => Controls_Manager::SLIDER,
+                'size_units' => [ 'px' ],
+                'range' => [ 'px' => [ 'min' => 12, 'max' => 50 ] ],
+                'default' => [ 'unit' => 'px', 'size' => 18 ],
+                'selectors' => [
+                    // این سلکتورها مشکل بیرون زدن SVG را حل می‌کنند
+                    '{{WRAPPER}} .slr-social-login-row .slr-button svg' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+                ],
+                'separator' => 'before',
+            ]
+        );
+
+        $this->start_controls_tabs( 'social_buttons_style_tabs' );
+
+        // تب حالت عادی
+        $this->start_controls_tab(
+            'social_button_normal_tab',
+            [ 'label' => __( 'عادی', 'yakutlogin' ) ]
+        );
+
+        $this->add_control(
+            'social_button_bg_color',
+            [
+                'label' => __( 'رنگ پس‌زمینه', 'yakutlogin' ),
+                'type' => Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row .slr-button' => 'background-color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'social_button_icon_color',
+            [
+                'label' => __( 'رنگ آیکون', 'yakutlogin' ),
+                'type' => Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row .slr-button svg' => 'fill: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'social_button_text_color',
+            [
+                'label' => __( 'رنگ متن', 'yakutlogin' ),
+                'type' => Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row .slr-button span' => 'color: {{VALUE}};',
+                ],
+                'condition' => [ 'social_buttons_layout' => 'default' ], // فقط در حالت متن و آیکون
+            ]
+        );
+
+        $this->end_controls_tab();
+
+        // تب حالت هاور
+        $this->start_controls_tab(
+            'social_button_hover_tab',
+            [ 'label' => __( 'هاور', 'yakutlogin' ) ]
+        );
+
+        $this->add_control(
+            'social_button_bg_color_hover',
+            [
+                'label' => __( 'رنگ پس‌زمینه هاور', 'yakutlogin' ),
+                'type' => Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row .slr-button:hover' => 'background-color: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'social_button_icon_color_hover',
+            [
+                'label' => __( 'رنگ آیکون هاور', 'yakutlogin' ),
+                'type' => Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row .slr-button:hover svg' => 'fill: {{VALUE}};',
+                ],
+            ]
+        );
+
+        $this->add_control(
+            'social_button_text_color_hover',
+            [
+                'label' => __( 'رنگ متن هاور', 'yakutlogin' ),
+                'type' => Controls_Manager::COLOR,
+                'selectors' => [
+                    '{{WRAPPER}} .slr-social-login-row .slr-button:hover span' => 'color: {{VALUE}};',
+                ],
+                'condition' => [ 'social_buttons_layout' => 'default' ],
+            ]
+        );
+        
+        $this->end_controls_tab();
+        $this->end_controls_tabs();
         $this->end_controls_section();
     }
 

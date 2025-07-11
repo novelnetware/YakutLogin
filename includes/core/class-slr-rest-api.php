@@ -62,40 +62,46 @@ class SLR_Rest_Api {
   }
 
   /**
-     * Permission callback to authenticate API requests using a signed signature.
-     */
-    public function api_permission_callback(WP_REST_Request $request) {
-        $public_key = $request->get_header('x_yakut_public_key');
-        $signature  = $request->get_header('x_yakut_signature');
-        $body       = $request->get_body();
+ * Permission callback to authenticate API requests using Public and Secret Keys.
+ */
+public function api_permission_callback(WP_REST_Request $request) {
+    // تغییر ۱: دریافت کلید مخفی به جای امضا (Signature)
+    $public_key = $request->get_header('x_yakut_public_key');
+    $secret_key_plain = $request->get_header('x_yakut_secret_key'); // دریافت کلید مخفی خام
 
-        if (!$public_key || !$signature) {
-            return new WP_Error('rest_unauthorized', 'API credentials missing.', ['status' => 401]);
-        }
+    // دیگر نیازی به بدنه درخواست برای احراز هویت نداریم
+    // $body = $request->get_body(); 
 
-        global $wpdb;
-        $key_data = $wpdb->get_row($wpdb->prepare(
-            "SELECT secret_key FROM {$wpdb->prefix}slr_api_keys WHERE public_key = %s AND status = 'active'",
-            $public_key
-        ));
-
-        if (!$key_data) {
-            return new WP_Error('rest_invalid_key', 'Invalid API Key.', ['status' => 403]);
-        }
-
-        $secret_key = $key_data->secret_key;
-        $expected_signature = hash_hmac('sha256', $body, $secret_key);
-
-        if (!hash_equals($expected_signature, $signature)) {
-            return new WP_Error('rest_invalid_signature', 'Invalid request signature.', ['status' => 403]);
-        }
-        
-        // Update last_used timestamp
-        $wpdb->update("{$wpdb->prefix}slr_api_keys", ['last_used' => current_time('mysql')], ['public_key' => $public_key]);
-
-        return true;
+    if (!$public_key || !$secret_key_plain) {
+        return new WP_Error('rest_unauthorized', 'API Public Key or Secret Key missing in headers.', ['status' => 401]);
     }
 
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'slr_api_keys';
+
+    // تغییر ۲: دریافت هش کلید مخفی از دیتابیس
+    $key_data = $wpdb->get_row($wpdb->prepare(
+        // مطمئن شوید که نام ستون در دیتابیس شما secret_key_hash است
+        "SELECT secret_key_hash FROM {$table_name} WHERE public_key = %s AND status = 'active'",
+        $public_key
+    ));
+
+    if (!$key_data || !isset($key_data->secret_key_hash)) {
+        return new WP_Error('rest_invalid_key', 'Invalid Public Key or Key is inactive.', ['status' => 403]);
+    }
+
+    // تغییر ۳: استفاده از wp_check_password به جای hash_hmac
+    // مقایسه کلید مخفی خام ارسالی با هش ذخیره شده در دیتابیس
+    if (!wp_check_password($secret_key_plain, $key_data->secret_key_hash)) {
+        return new WP_Error('rest_invalid_secret', 'Invalid Secret Key.', ['status' => 403]);
+    }
+    
+    // احراز هویت موفق بود
+    // Update last_used timestamp
+    $wpdb->update($table_name, ['last_used' => current_time('mysql')], ['public_key' => $public_key]);
+
+    return true;
+}
     /**
      * API endpoint to send an OTP.
      */

@@ -7,7 +7,6 @@
  * @subpackage Sms_Login_Register/admin/partials
  */
 
-// دریافت تنظیمات ذخیره شده برای نمایش مقادیر فعلی در فیلدها
 $options = get_option('slr_plugin_options', []);
 ?>
 <div class="wrap yakutlogin-container">

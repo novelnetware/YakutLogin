@@ -197,3 +197,52 @@
 .slr-modal-close:hover {
     color: #333;
 }
+
+/*
+==============================================
+Professional OTP Input Styles
+==============================================
+*/
+.slr-otp-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.slr-otp-digit {
+    width: 45px !important; /* using !important to override potential generic .slr-input styles */
+    height: 50px !important;
+    font-size: 24px !important;
+    text-align: center !important;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 0 !important; /* Reset padding */
+    transition: all 0.2s ease-in-out;
+    -moz-appearance: textfield; /* Hide number spinners in Firefox */
+}
+
+/* Hide number spinners in Chrome, Safari, Edge, Opera */
+.slr-otp-digit::-webkit-outer-spin-button,
+.slr-otp-digit::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.slr-otp-digit:focus {
+    outline: none;
+    border-color: #007cba; /* A nice blue color for focus */
+    box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.2);
+}
+
+/* Optional: Style for when form has an error */
+.slr-otp-form.has-error .slr-otp-digit {
+    border-color: #d9534f; /* Red border for error */
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}

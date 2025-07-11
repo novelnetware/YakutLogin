@@ -144,7 +144,7 @@ jQuery(document).ready(function($) {
                 if (result.success) {
                     displayMessage(result.data.message, 'success');
                     $identifierRow.slideUp();
-                    $captchaRow.slideUp();
+               //     $captchaRow.slideUp();
                     $orDivider.slideUp();
                     $socialRow.slideUp();
                     $otpRow.slideDown().find('input').focus();
@@ -187,6 +187,7 @@ jQuery(document).ready(function($) {
                 $submitBtn.prop('disabled', false).html(originalButtonText);
             }
         });
+        initializeOtpInputs(formContainer); 
     } // <-- *** THIS WAS THE MISSING BRACE ***
 
     /**
@@ -468,6 +469,77 @@ jQuery(document).ready(function($) {
             $modal.on('click', '.slr-modal-close', (e) => { e.preventDefault(); closeModal($modal); });
             $modal.on('click', (e) => { if ($(e.target).is($modal)) closeModal($modal); });
         });
+    }
+
+    /**
+     * ================================================================
+     * Professional OTP Inputs Handler
+     * ================================================================
+     */
+    function initializeOtpInputs(formContainer) {
+        const $container = $(formContainer);
+        const $otpInputsContainer = $container.find('.slr-otp-inputs');
+        if ($otpInputsContainer.length === 0) return;
+
+        const $inputs = $otpInputsContainer.find('.slr-otp-digit');
+        const $hiddenInput = $container.find('.slr-otp-input-hidden');
+        const $submitButton = $container.find('.slr-submit-button');
+
+        const handleInput = (e) => {
+            const input = e.target;
+            const value = input.value;
+            const currentIndex = parseInt($(input).data('index'));
+
+            // Combine all inputs to update the hidden field
+            let finalOtp = '';
+            $inputs.each(function() {
+                finalOtp += $(this).val();
+            });
+            $hiddenInput.val(finalOtp);
+
+            // Move to next input if a digit is entered
+            if (value && currentIndex < $inputs.length - 1) {
+                $inputs.eq(currentIndex + 1).focus();
+            }
+            
+            // If all fields are filled, maybe trigger submit
+            if (finalOtp.length === $inputs.length) {
+                $submitButton.focus(); // or $container.find('form').trigger('submit');
+            }
+        };
+
+        const handleKeydown = (e) => {
+            const input = e.target;
+            const currentIndex = parseInt($(input).data('index'));
+
+            // Handle Backspace
+            if (e.key === 'Backspace' && !input.value && currentIndex > 0) {
+                $inputs.eq(currentIndex - 1).focus();
+            }
+        };
+
+        const handlePaste = (e) => {
+            e.preventDefault();
+            const pasteData = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+            const digits = pasteData.replace(/\D/g, '').split('');
+
+            $inputs.each(function(index) {
+                if (digits[index]) {
+                    $(this).val(digits[index]);
+                }
+            });
+            
+            // Trigger input event on the last pasted element to combine and move focus
+            const lastPastedIndex = Math.min(digits.length, $inputs.length) - 1;
+            if (lastPastedIndex >= 0) {
+                 $inputs.eq(lastPastedIndex).trigger('input');
+                 $inputs.eq(lastPastedIndex).focus();
+            }
+        };
+
+        $otpInputsContainer.on('input', '.slr-otp-digit', handleInput);
+        $otpInputsContainer.on('keydown', '.slr-otp-digit', handleKeydown);
+        $otpInputsContainer.on('paste', '.slr-otp-digit', handlePaste);
     }
 
 

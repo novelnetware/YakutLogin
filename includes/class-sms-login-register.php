@@ -78,8 +78,8 @@ class Sms_Login_Register {
         require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-telegram-handler.php';
 
         require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-telegram-handler.php';
-require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-bale-handler.php';
-require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-bale-otp-handler.php';
+        require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-bale-handler.php';
+        require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-bale-otp-handler.php';
 
         if (class_exists('WooCommerce')) {
             require_once SLR_PLUGIN_DIR . 'includes/integrations/class-slr-woocommerce-integration.php';

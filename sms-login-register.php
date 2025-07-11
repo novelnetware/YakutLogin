@@ -29,7 +29,6 @@ define( 'SLR_PLUGIN_NAME_FOR_INSTANCE', 'sms-login-register' );
 define( 'SLR_PLUGIN_VERSION_FOR_INSTANCE', SLR_PLUGIN_VERSION );
 
 
-
 /**
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.
@@ -63,40 +62,26 @@ function slr_activate_plugin() {
         );
         update_option( 'slr_plugin_options', $default_options );
     }
-    // START: FIX for Database Error
+
     global $wpdb;
-    // Define the table name with the WordPress prefix
-    $table_name = $wpdb->prefix . 'slr_passkey_credentials';
     $charset_collate = $wpdb->get_charset_collate();
-
-    // This SQL seems to be for a future Passkey/WebAuthn feature.
-    // It's corrected now and will create the table properly.
-    $sql = "CREATE TABLE $table_name (
-        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-        user_id BIGINT(20) UNSIGNED NOT NULL,
-        credential_id VARBINARY(255) NOT NULL,
-        public_key TEXT NOT NULL,
-        signature_counter BIGINT(20) UNSIGNED NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        UNIQUE KEY credential_id (credential_id(100)),
-        KEY user_id (user_id)
-    ) $charset_collate;";
-
     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $sql );
-    // END: FIX
 
-    // START: Add code for the new API Keys table
+    /**
+     * >>> WebAuthn/Passkey table removed based on your confirmation <<<
+     */
+
+
+    // START: API Keys table - SECURITY FIX APPLIED
     $api_keys_table_name = $wpdb->prefix . 'slr_api_keys';
     
-    // Find this SQL statement and modify it as shown below
+    // Changed secret_key TEXT to secret_key_hash VARCHAR(255) for security.
     $sql_api_keys = "CREATE TABLE $api_keys_table_name (
         id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         user_id BIGINT(20) UNSIGNED NOT NULL,
         name VARCHAR(100) NOT NULL,
         public_key VARCHAR(64) NOT NULL,
-        secret_key TEXT NOT NULL, -- MODIFIED: Changed from secret_key_hash VARCHAR(255)
+        secret_key_hash VARCHAR(255) NOT NULL, 
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         last_used TIMESTAMP NULL DEFAULT NULL,
         status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -105,7 +90,7 @@ function slr_activate_plugin() {
     ) $charset_collate;";
 
     dbDelta( $sql_api_keys );
-    // END: Add code for the new API Keys table
+    // END: API Keys table
 }
 register_activation_hook( __FILE__, 'slr_activate_plugin' );
 

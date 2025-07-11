@@ -40,3 +40,18 @@
     gap: 10px;
     flex-direction: column;
 }
+
+.slr-social-layout-icon .slr-social-login-row .slr-button span {
+    display: none;
+}
+
+/* برای اینکه آیکون در مرکز قرار بگیرد، مارجین آن را در حالت "فقط آیکون" حذف می‌کنیم */
+.slr-social-layout-icon .slr-social-login-row .slr-button svg {
+    margin-left: 0 !important;
+}
+
+/* می‌توانید کمی پدینگ اضافه کنید تا دکمه‌ها ظاهر بهتری داشته باشند */
+.slr-social-layout-icon .slr-social-login-row .slr-button {
+    padding: 10px; /* یک مقدار پیش‌فرض، کاربر می‌تواند از کنترل‌ها تغییر دهد */
+    justify-content: center; /* مرکز کردن آیکون در دکمه */
+}

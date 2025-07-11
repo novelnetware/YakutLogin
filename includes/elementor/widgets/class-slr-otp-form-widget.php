@@ -464,48 +464,31 @@ class SLR_Otp_Form_Widget extends Widget_Base {
         $this->end_controls_section();
     }
 
-    protected function render() {
-    $settings = $this->get_settings_for_display();
-    
-    $public_class_instance = null;
-    
-    // اطمینان از وجود کلاس‌های مورد نیاز
-    if (class_exists('Sms_Login_Register_Public') && class_exists('SLR_Theme_Manager')) {
-        $plugin_name = defined('SLR_PLUGIN_NAME_FOR_INSTANCE') ? SLR_PLUGIN_NAME_FOR_INSTANCE : 'sms-login-register';
-        $plugin_version = defined('SLR_PLUGIN_VERSION_FOR_INSTANCE') ? SLR_PLUGIN_VERSION_FOR_INSTANCE : '1.9.1';
-        
+protected function render() {
+        $settings = $this->get_settings_for_display();
 
-        $theme_manager = \SLR_Theme_Manager::get_instance();
-        
-        
-        $public_class_instance = new \Sms_Login_Register_Public($plugin_name, $plugin_version, $theme_manager);
-        
+        // 1. Build the shortcode attributes string from the widget settings.
+        $shortcode_atts = [
+            'theme'         => $settings['form_theme'],
+            'layout'        => $settings['form_layout'],
+            'show_labels'   => $settings['show_labels'] === 'yes' ? 'true' : 'false',
+            'redirect_to'   => $settings['redirect_to']['url'],
+            'text_send_otp' => $settings['text_send_otp'],
+            'text_submit'   => $settings['text_submit'],
+            'text_google'   => $settings['text_google'],
+        ];
+
+        $atts_string = '';
+        foreach ($shortcode_atts as $key => $value) {
+            if (!empty($value)) {
+                $atts_string .= sprintf(' %s="%s"', $key, esc_attr($value));
+            }
+        }
+
+        // 2. Execute the shortcode.
+        // This is the standard and most stable way to render plugin content in Elementor.
+        echo do_shortcode('[slr_otp_form' . $atts_string . ']');
     }
-
-    if ($public_class_instance) {
-    $button_texts = [
-        // استفاده از Null Coalescing Operator برای ارائه مقدار پیش‌فرض
-        'send_otp' => $settings['text_send_otp'] ?? __( 'ارسال کد تایید', 'yakutlogin' ),
-        'submit'   => $settings['text_submit'] ?? __( 'ورود / عضویت', 'yakutlogin' ),
-        'google'   => $settings['text_google'] ?? __( 'ورود با گوگل', 'yakutlogin' ),
-    ];
-
-    $form_args = [
-        // استفاده از Null Coalescing Operator برای تمام مقادیر
-        'context'     => $settings['form_context'] ?? 'mixed',
-        'show_labels' => ($settings['show_labels'] ?? 'yes') === 'yes',
-        'redirect_to' => $settings['redirect_to']['url'] ?? '',
-        'theme'       => $settings['form_theme'] ?? 'default',
-        'layout'      => $settings['form_layout'] ?? 'default',
-        'button_texts'=> $button_texts,
-    ];
-    
-    echo $public_class_instance->get_otp_form_html( $form_args );
-
-} else {
-        echo __('خطا: کلاس اصلی افزونه یافت نشد.', 'yakutlogin');
-    }
-}
 
     protected function content_template() {
         ?>

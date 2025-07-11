@@ -3,7 +3,7 @@
  * Plugin Name:       YakutLogin
  * Plugin URI:        https://yakut.ir/plugins/yakutlogin/
  * Description:       Enables SMS-based login and registration with OTP, email OTP, Google Login, and CAPTCHA support.
- * Version:           1.3.5
+ * Version:           1.4.0
  * Author:            Yakut
  * Author URI:        https://yakut.ir/
  * License:           GPL v2 or later
@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define constants
  */
-define( 'SLR_PLUGIN_VERSION', '1.3.5' ); // SLR for SMS Login Register
+define( 'SLR_PLUGIN_VERSION', '1.4.0' ); // SLR for SMS Login Register
 define( 'SLR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SLR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SLR_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

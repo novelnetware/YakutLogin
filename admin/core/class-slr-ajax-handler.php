@@ -3,28 +3,42 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class SLR_Ajax_Handler {
 
+    private $gateway_manager;
+
     public function __construct() {
+
+        if (class_exists('SLR_Gateway_Manager')) {
+            $this->gateway_manager = new SLR_Gateway_Manager();
+        }
+
+        $this->init_hooks();
+    }
+
+    /**
+     * Register all AJAX action hooks.
+     */
+    private function init_hooks() {
         $ajax_actions = [
-            'yakutlogin_save_settings',
-            'yakutlogin_get_gateway_fields',
-            'yakutlogin_cleanup_data',
-            'test_telegram_connection',
-            'create_cf_worker',
-            'set_telegram_webhook',
-            'get_telegram_webhook_info',
-            'get_api_keys',
-            'generate_api_key',
-            'revoke_api_key',
-            'slr_import_from_digits',
-            'slr_import_from_wc',
+            'yakutlogin_save_settings'      => 'handle_save_settings',
+            'yakutlogin_get_gateway_fields' => 'handle_get_gateway_fields',
+            'test_telegram_connection'      => 'handle_test_telegram_connection',
+            'create_cf_worker'              => 'handle_create_cf_worker',
+            'set_telegram_webhook'          => 'handle_set_telegram_webhook',
+            'get_telegram_webhook_info'     => 'handle_get_telegram_webhook_info',
+            'get_api_keys'                  => 'handle_get_api_keys',
+            'generate_api_key'              => 'handle_generate_api_key',
+            'revoke_api_key'                => 'handle_revoke_api_key',
+            'slr_import_from_digits'        => 'handle_import_from_digits',
+            'slr_import_from_wc'            => 'handle_import_from_wc',
+            'yakutlogin_cleanup_data'       => 'handle_cleanup_data',
         ];
 
-        foreach ($ajax_actions as $action) {
-            add_action('wp_ajax_' . $action, [$this, 'handle_' . $action]);
+        foreach ( $ajax_actions as $action => $handler ) {
+            add_action( 'wp_ajax_' . $action, [ $this, $handler ] );
         }
     }
 
-    public function handle_yakutlogin_save_settings() {
+    public function handle_save_settings() {
             check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
 
     if (!current_user_can('manage_options')) {
@@ -140,38 +154,50 @@ class SLR_Ajax_Handler {
         // $all_possible_options = SLR_Settings_Fields::get_all_fields();
     }
     
-    public function handle_yakutlogin_get_gateway_fields() { 
-        check_ajax_referer( 'yakutlogin_admin_nonce', 'nonce' );
-
-        if ( ! current_user_can( 'manage_options' ) ) {
+/**
+     * AJAX handler for getting dynamic gateway fields.
+     */
+    public function handle_get_gateway_fields() {
+        check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
+        // Now this check will pass because $this->gateway_manager is initialized.
+        if (!current_user_can('manage_options') || !$this->gateway_manager) {
             wp_send_json_error();
         }
 
-        $gateway_id = isset( $_POST['gateway_id'] ) ? sanitize_key( $_POST['gateway_id'] ) : '';
-        if ( empty( $gateway_id ) ) {
-            wp_send_json_success( [ 'html' => '' ] );
+        $gateway_id = isset($_POST['gateway_id']) ? sanitize_key($_POST['gateway_id']) : '';
+        if (empty($gateway_id)) {
+            wp_send_json_success(['html' => '']);
+            return;
         }
         
         $gateway = $this->gateway_manager->get_available_gateways()[$gateway_id] ?? null;
         if (!$gateway) {
             wp_send_json_error();
+            return;
         }
 
         $options = get_option('slr_plugin_options', []);
-        $fields_html = '';
         
         ob_start();
         echo '<h3>تنظیمات ' . esc_html($gateway->get_name()) . '</h3>';
+        
+        $ui_helper = new SLR_Admin_UI(SLR_PLUGIN_NAME_FOR_INSTANCE, SLR_PLUGIN_VERSION_FOR_INSTANCE);
+
         foreach ($gateway->get_settings_fields() as $field_id => $field_args) {
             echo '<div class="setting-option">';
-            echo '<label>' . esc_html($field_args['label']) . '</label>';
-            $this->render_setting_field($field_id, $field_args['type'], $options, $field_args['desc'] ?? '');
+            echo '<label for="'.esc_attr($field_id).'">'. esc_html($field_args['label']) .'</label>';
+            $ui_helper->render_setting_field($field_id, $field_args['type'], $options, $field_args['placeholder'] ?? '');
+             if (!empty($field_args['desc'])) {
+                echo '<p class="description">' . wp_kses_post($field_args['desc']) . '</p>';
+            }
             echo '</div>';
         }
         $fields_html = ob_get_clean();
 
-        wp_send_json_success( [ 'html' => $fields_html ] );
-     }
+        wp_send_json_success(['html' => $fields_html]);
+    }
+
+
     public function handle_test_telegram_connection() { 
                 check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
         if (!current_user_can('manage_options')) {

@@ -52,7 +52,7 @@ class SLR_Admin_UI {
     public function display_plugin_setup_page() {
         // We pass this object to the view so it can access the render method
         $ui_helper = $this; 
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/yakutlogin-admin-panel-display.php';
+        require_once dirname( dirname( __FILE__ ) ) . '/partials/yakutlogin-admin-panel-display.php';
     }
 
     /**

@@ -92,6 +92,19 @@ class SLR_User_Handler {
         if (is_wp_error($user_id)) {
             return new WP_Error('user_creation_failed', $user_id->get_error_message(), ['status' => 500]);
         }
+
+        if (!empty($extra_data)) {
+        $user_update_data = ['ID' => $user_id];
+        if (!empty($extra_data['first_name'])) {
+            $user_update_data['first_name'] = sanitize_text_field($extra_data['first_name']);
+        }
+        if (!empty($extra_data['last_name'])) {
+            $user_update_data['last_name'] = sanitize_text_field($extra_data['last_name']);
+        }
+        if(count($user_update_data) > 1) {
+            wp_update_user($user_update_data);
+        }
+    }
         
         $new_user = get_user_by('id', $user_id);
         

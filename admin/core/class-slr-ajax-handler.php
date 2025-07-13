@@ -38,80 +38,15 @@ class SLR_Ajax_Handler {
         }
     }
 
-    public function handle_save_settings() {
-            check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
+  public function handle_save_settings() {
+    check_ajax_referer('yakutlogin_admin_nonce', 'nonce');
 
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز']);
     }
 
-    $all_possible_options = [
-        'email_otp_enabled' => 'checkbox',
-        'otp_email_subject' => 'text',
-        'otp_email_body'    => 'editor',
-        'sms_provider'        => 'key',
-        'sms_provider_backup' => 'key',
-        'kavenegar_api_key'         => 'password',
-        'kavenegar_sender_line'     => 'text',
-        'kavenegar_use_lookup'      => 'checkbox',
-        'kavenegar_lookup_template' => 'text',
-        'melipayamak_username'  => 'text',
-        'melipayamak_password'  => 'password',
-        'melipayamak_from'      => 'text',
-        'melipayamak_body_id'   => 'number',
-        'melipayamak_is_shared' => 'checkbox',
-        'kavansms_api_key' => 'password',
-        'kavansms_otp_id'  => 'text',
-        'farazsms_username'          => 'text',
-        'farazsms_password'          => 'password',
-        'farazsms_from'              => 'text',
-        'farazsms_pattern_code'      => 'text',
-        'farazsms_otp_variable_name' => 'text',
-        'smsir_api_key'            => 'password',
-        'smsir_template_id'        => 'number',
-        'smsir_otp_parameter_name' => 'text',
-        'smsir_fast_mode'          => 'checkbox',
-        'smsir_line_number'        => 'text',
-        'google_login_enabled' => 'checkbox',
-        'google_client_id'     => 'text',
-        'google_client_secret' => 'password',
-        'telegram_login_enabled' => 'checkbox',
-        'telegram_bot_token' => 'password',
-        'telegram_bot_username'  => 'text',
-        'telegram_use_cf_worker' => 'checkbox',
-        'telegram_worker_url'    => 'text',
-        'telegram_cf_proxy_secret' => 'text',
-        'bale_login_enabled'       => 'checkbox',
-        'bale_login_mode'          => 'key',
-        'bale_bot_token'           => 'password',
-        'bale_bot_username'        => 'text',
-        'bale_otp_client_id'       => 'text',
-        'bale_otp_client_secret'   => 'password',
-        'discord_login_enabled'    => 'checkbox',
-        'discord_client_id'        => 'text',
-        'discord_client_secret'    => 'password',
-        'linkedin_login_enabled'   => 'checkbox',
-        'linkedin_client_id'       => 'text',
-        'linkedin_client_secret'   => 'password',
-        'github_login_enabled'     => 'checkbox',
-        'github_client_id'         => 'text',
-        'github_client_secret'     => 'password',
-        'captcha_type'              => 'key',
-        'recaptcha_v2_site_key'   => 'text',
-        'recaptcha_v2_secret_key' => 'password',
-        'turnstile_site_key'      => 'text',
-        'turnstile_secret_key'    => 'password',
-        'wc_checkout_otp_integration' => 'checkbox',
-        'ghasedaksms_api_key'     => 'password',
-        'ghasedaksms_line_number' => 'text',
-        'ghasedaksms_use_pattern' => 'checkbox',
-        'payamresan_username'     => 'text',
-        'payamresan_password'     => 'password',
-        'payamresan_from'         => 'text',
-        'payamresan_use_template' => 'checkbox',
-        'sms_otp_template'        => 'text',
-    ];
-
+    //  بهبود اصلی: خواندن فیلدها به صورت پویا 
+    $all_possible_options = SLR_Settings_Fields::get_all_fields();
 
     $submitted_data = [];
     if (isset($_POST['settings'])) {
@@ -124,16 +59,17 @@ class SLR_Ajax_Handler {
 
     foreach ($all_possible_options as $key => $type) {
         if ($type === 'checkbox') {
-            $current_options[$key] = isset($submitted_data[$key]) ? 1 : 0;
+            $current_options[$key] = isset($submitted_data[$key]);
         } elseif (isset($submitted_data[$key])) {
             $value = $submitted_data[$key];
             switch ($type) {
                 case 'editor':
-            case 'textarea':
-                $current_options[$key] = wp_kses_post($value);
-                break;
+                case 'textarea':
+                    $current_options[$key] = wp_kses_post($value);
+                    break;
                 case 'password':
                 case 'text':
+                case 'url': // افزودن نوع url برای پاکسازی بهتر
                     $current_options[$key] = sanitize_text_field($value);
                     break;
                 case 'number':
@@ -151,8 +87,7 @@ class SLR_Ajax_Handler {
     update_option('slr_plugin_options', $current_options);
     
     wp_send_json_success(['message' => 'تنظیمات با موفقیت ذخیره شد!']);
-        // $all_possible_options = SLR_Settings_Fields::get_all_fields();
-    }
+}
     
 /**
      * AJAX handler for getting dynamic gateway fields.

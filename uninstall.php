@@ -46,6 +46,14 @@ delete_option( 'slr_plugin_options' );
 
 // If you created custom database tables, drop them here using $wpdb.
 global $wpdb;
+
+// حذف جدول کلیدهای API
+$api_keys_table_name = $wpdb->prefix . 'slr_api_keys';
+$wpdb->query("DROP TABLE IF EXISTS {$api_keys_table_name}");
+
+// حذف تمام transient های افزونه
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_slr\_%' OR option_name LIKE '\_transient\_timeout\_slr\_%'");
+
 // Example: $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}my_custom_table" );
 
 // Clear any scheduled cron events if your plugin added them.

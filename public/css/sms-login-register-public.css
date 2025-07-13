@@ -204,22 +204,19 @@ Professional OTP Input Styles
 ==============================================
 */
 .slr-otp-inputs {
+    direction: ltr; /* Ensures inputs are laid out left-to-right */
     display: flex;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px; /* Space between input boxes */
 }
 
 .slr-otp-digit {
-    width: 45px !important; /* using !important to override potential generic .slr-input styles */
-    height: 50px !important;
-    font-size: 24px !important;
-    text-align: center !important;
+    width: 40px;
+    height: 45px;
+    font-size: 20px;
+    text-align: center;
     border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 0 !important; /* Reset padding */
-    transition: all 0.2s ease-in-out;
-    -moz-appearance: textfield; /* Hide number spinners in Firefox */
+    border-radius: 6px;
 }
 
 /* Hide number spinners in Chrome, Safari, Edge, Opera */
@@ -245,4 +242,147 @@ Professional OTP Input Styles
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
     75% { transform: translateX(5px); }
+}
+
+/**
+ * Styles for OTP Actions (Resend/Back buttons)
+ */
+.slr-otp-actions {
+    display: flex;
+    flex-direction: column; /* Stacks links vertically */
+    align-items: center;    /* Centers the links */
+    gap: 10px;              /* Adds space between links */
+    margin-top: 15px;
+    width: 100%;
+}
+
+.slr-otp-actions a {
+    text-decoration: none;
+    font-size: 14px;
+}
+.slr-form-logo {
+    text-align: center;
+    margin-bottom: 25px;
+}
+.slr-form-logo img {
+    max-width: 150px;
+    height: auto;
+}
+
+/* ====== Social Login Icons Wrapper ====== */
+.slr-social-icons-wrapper {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+}
+
+.slr-social-icons-wrapper .icon {
+    position: relative;
+    background: #ffffff;
+    border-radius: 50%;
+    padding: 15px;
+    margin: 0 10px;
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* **FIX:** Defining a default color for the icon */
+.slr-social-icons-wrapper .icon span i {
+    color: #333; /* رنگ پیش‌فرض آیکون در حالت عادی */
+    transition: color 0.3s ease;
+}
+
+.slr-social-icons-wrapper .icon .tooltip {
+    position: absolute;
+    top: 0;
+    font-size: 14px;
+    background: #ffffff;
+    color: #ffffff;
+    padding: 5px 8px;
+    border-radius: 5px;
+    height: 35px;
+    width: 100px;
+    text-align: center;
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.slr-social-icons-wrapper .icon .tooltip::before {
+    position: absolute;
+    content: "";
+    height: 35px;
+    width: 100px;
+    text-align: center;
+    background: #ffffff;
+    bottom: -3px;
+    left: 50%;
+    transform: translate(-50%) rotate(45deg);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.slr-social-icons-wrapper .icon:hover .tooltip {
+    top: -45px;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.slr-social-icons-wrapper .icon:hover span,
+.slr-social-icons-wrapper .icon:hover .tooltip {
+    text-shadow: 0px -1px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Default Hover Colors (can be overridden by Elementor) --- */
+
+.slr-social-icons-wrapper .icon:hover,
+.slr-social-icons-wrapper .icon:hover .tooltip,
+.slr-social-icons-wrapper .icon:hover .tooltip::before {
+    color: #ffffff; /* رنگ متن تولتیپ و آیکون در حالت هاور */
+}
+
+.slr-social-icons-wrapper .icon:hover span i {
+    color: #ffffff; /* اطمینان از سفید شدن آیکون در حالت هاور */
+}
+
+.slr-social-icons-wrapper .google:hover,
+.slr-social-icons-wrapper .google:hover .tooltip,
+.slr-social-icons-wrapper .google:hover .tooltip::before {
+    background: #DB4437;
+}
+
+.slr-social-icons-wrapper .github:hover,
+.slr-social-icons-wrapper .github:hover .tooltip,
+.slr-social-icons-wrapper .github:hover .tooltip::before {
+    background: #333333;
+}
+
+/* **ADDED:** Default styles for other providers */
+.slr-social-icons-wrapper .discord:hover,
+.slr-social-icons-wrapper .discord:hover .tooltip,
+.slr-social-icons-wrapper .discord:hover .tooltip::before {
+    background: #5865F2;
+}
+
+.slr-social-icons-wrapper .linkedin:hover,
+.slr-social-icons-wrapper .linkedin:hover .tooltip,
+.slr-social-icons-wrapper .linkedin:hover .tooltip::before {
+    background: #0A66C2;
+}
+
+.slr-social-icons-wrapper .bale:hover,
+.slr-social-icons-wrapper .bale:hover .tooltip,
+.slr-social-icons-wrapper .bale:hover .tooltip::before {
+    background: #00A884; /* A suitable green for Bale */
 }

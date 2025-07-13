@@ -21,11 +21,7 @@ class SLR_Ajax_Handler_Public {
         $ajax_actions = [
             'slr_send_otp'                      => 'handle_send_otp',
             'slr_process_login_register_otp'    => 'handle_process_otp',
-            'slr_generate_telegram_request'     => 'handle_generate_telegram_request',
-            'slr_check_telegram_login_status'   => 'handle_check_telegram_status',
             'slr_send_bale_otp'                 => 'handle_send_bale_otp',
-            'slr_generate_bale_bot_request'     => 'handle_generate_bale_request',
-            'slr_check_bale_login_status'       => 'handle_check_bale_status',
         ];
 
         foreach ($ajax_actions as $action => $handler) {
@@ -112,77 +108,6 @@ class SLR_Ajax_Handler_Public {
         
         wp_send_json_success(['redirect_url' => apply_filters('slr_login_redirect_url', $redirect_url, $user)]);
     }
-    
-    public function handle_generate_telegram_request() {
-        check_ajax_referer('slr_telegram_request_nonce', 'security');
-
-        $telegram_handler = new SLR_Telegram_Handler();
-        if (!$telegram_handler->is_active()) {
-            wp_send_json_error(['message' => __('Telegram login is not enabled.', 'yakutlogin')]);
-        }
-
-        $options = get_option('slr_plugin_options');
-        $bot_username = $options['telegram_bot_username'] ?? null;
-
-        // Ensure the bot username is known before creating a link
-        if (empty($bot_username)) {
-            wp_send_json_error(['message' => __('Telegram bot username is not configured. Please test the connection in the admin panel first.', 'yakutlogin')]);
-        }
-        
-        $unique_key = wp_generate_password(32, false, false);
-        $session_id = wp_generate_password(32, false, false);
-
-        set_transient('slr_tg_key_' . $unique_key, $session_id, 5 * MINUTE_IN_SECONDS);
-        set_transient('slr_tg_session_' . $session_id, ['status' => 'pending'], 5 * MINUTE_IN_SECONDS);
-
-        wp_send_json_success([
-            'bot_link'   => sprintf('https://t.me/%s?start=%s', $bot_username, $unique_key),
-            'unique_key' => $unique_key,
-            'session_id' => $session_id,
-        ]);
-    }
-
-    public function handle_check_telegram_status() {
-        check_ajax_referer( 'slr_telegram_polling_nonce', 'security' );
-        
-        $session_id = isset( $_POST['session_id'] ) ? sanitize_key( $_POST['session_id'] ) : '';
-        if ( empty( $session_id ) ) {
-            wp_send_json_error( [ 'status' => 'error', 'message' => 'Invalid session.' ] );
-        }
-
-        $session_data = get_transient( 'slr_tg_session_' . $session_id );
-
-        if ( false === $session_data ) {
-            wp_send_json_success( [ 'status' => 'expired' ] );
-        }
-
-        if ( 'success' === $session_data['status'] && ! empty( $session_data['user_id'] ) ) {
-            $user_id = $session_data['user_id'];
-            $user = get_user_by( 'id', $user_id );
-
-            if ( $user ) {
-                // Log the user in
-                wp_clear_auth_cookie();
-                wp_set_current_user( $user->ID, $user->user_login );
-                wp_set_auth_cookie( $user->ID, true );
-                do_action( 'wp_login', $user->user_login, $user );
-
-                // Clean up the transient
-                delete_transient( 'slr_tg_session_' . $session_id );
-
-                // Get redirect URL
-                $redirect_url = apply_filters( 'slr_login_redirect_url_default', admin_url(), $user );
-
-                wp_send_json_success( [
-                    'status'       => 'success',
-                    'redirect_url' => apply_filters( 'slr_login_redirect_url', $redirect_url, $user ),
-                ] );
-            }
-        }
-        
-        // Default response if status is not 'success' or 'expired'
-        wp_send_json_success( [ 'status' => $session_data['status'] ?? 'pending' ] );
-    }
 
     /**
      * AJAX handler to send an OTP via the Bale OTP service.
@@ -216,59 +141,5 @@ class SLR_Ajax_Handler_Public {
         }
     }
 
-    /**
-     * AJAX handler to generate a new Bale Smart (Bot) Login request.
-     */
-    public function handle_generate_bale_bot_request() {
-        check_ajax_referer('slr_bale_bot_nonce', 'security');
-
-        $unique_code = Sms_Login_Register_Otp_Handler::generate_otp(6); // A 6-digit code
-        $session_id = wp_generate_password(32, false, false);
-
-        set_transient('slr_bale_code_' . $unique_code, $session_id, 5 * MINUTE_IN_SECONDS);
-        set_transient('slr_bale_session_' . $session_id, ['status' => 'pending'], 5 * MINUTE_IN_SECONDS);
-
-        wp_send_json_success([
-            'unique_code' => $unique_code,
-            'session_id'  => $session_id,
-        ]);
-    }
     
-    /**
-     * AJAX handler for polling Bale Smart (Bot) Login status.
-     */
-    public function handle_check_bale_login_status() {
-        check_ajax_referer('slr_bale_polling_nonce', 'security');
-        
-        $session_id = isset($_POST['session_id']) ? sanitize_key($_POST['session_id']) : '';
-        if (empty($session_id)) {
-            wp_send_json_error(['status' => 'error', 'message' => 'Invalid session.']);
-        }
-
-        $session_data = get_transient('slr_bale_session_' . $session_id);
-
-        if (false === $session_data) {
-            wp_send_json_success(['status' => 'expired']);
-            return;
-        }
-
-        if ('success' === ($session_data['status'] ?? 'pending') && !empty($session_data['user_id'])) {
-            $user = get_user_by('id', $session_data['user_id']);
-            if ($user) {
-                wp_clear_auth_cookie();
-                wp_set_current_user($user->ID, $user->user_login);
-                wp_set_auth_cookie($user->ID, true);
-                do_action('wp_login', $user->user_login, $user);
-                delete_transient('slr_bale_session_' . $session_id);
-                
-                $redirect_url = apply_filters('slr_login_redirect_url_default', admin_url(), $user);
-                wp_send_json_success([
-                    'status'       => 'success',
-                    'redirect_url' => apply_filters('slr_login_redirect_url', $redirect_url, $user),
-                ]);
-            }
-        }
-        
-        wp_send_json_success(['status' => $session_data['status'] ?? 'pending']);
-    }
 }

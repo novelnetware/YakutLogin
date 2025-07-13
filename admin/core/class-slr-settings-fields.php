@@ -76,6 +76,7 @@ class SLR_Settings_Fields {
             'google_client_id'              => 'text',
             'google_client_secret'          => 'password',
 
+            /*
             // Telegram Login
             'telegram_login_enabled'        => 'checkbox',
             'telegram_bot_token'            => 'password',
@@ -83,12 +84,13 @@ class SLR_Settings_Fields {
             'telegram_use_cf_worker'        => 'checkbox',
             'telegram_worker_url'           => 'text',
             'telegram_cf_proxy_secret'      => 'text',
+            */
 
             // Bale Login
             'bale_login_enabled'            => 'checkbox',
-            'bale_login_mode'               => 'key',
-            'bale_bot_token'                => 'password',
-            'bale_bot_username'             => 'text',
+            //'bale_login_mode'               => 'key',
+           // 'bale_bot_token'                => 'password',
+           // 'bale_bot_username'             => 'text',
             'bale_otp_client_id'            => 'text',
             'bale_otp_client_secret'        => 'password',
 

@@ -145,30 +145,72 @@ class Sms_Login_Register_Public {
      * @param array $atts Shortcode attributes.
      * @return string HTML output of the form.
      */
-    public function render_slr_otp_form_shortcode($atts) {
-        $atts = shortcode_atts([
-            'show_labels'   => 'true',
-            'redirect_to'   => '',
-            'theme'         => 'default',
-            'layout'        => 'default',
-            'text_send_otp' => '',
-            'text_submit'   => '',
-            'text_google'   => '',
-        ], $atts, 'slr_otp_form');
+    /**
+ * Renders the OTP form via shortcode, processing all Elementor widget settings.
+ * @param array $atts Shortcode attributes.
+ * @return string HTML output of the form.
+ */
+public function render_slr_otp_form_shortcode($atts) {
+    // List of all supported social providers from the Elementor widget
+    $social_providers = ['google', 'bale', 'discord', 'linkedin', 'github'];
 
-        $button_texts = [];
-        if (!empty($atts['text_send_otp'])) $button_texts['send_otp'] = sanitize_text_field($atts['text_send_otp']);
-        if (!empty($atts['text_submit'])) $button_texts['submit'] = sanitize_text_field($atts['text_submit']);
-        if (!empty($atts['text_google'])) $button_texts['google'] = sanitize_text_field($atts['text_google']);
+    // Define default attributes for the shortcode
+    $default_atts = [
+        'logo_url'      => '',
+        'show_labels'   => 'true',
+        'redirect_to'   => '',
+        'theme'         => 'default',
+        'layout'        => 'default',
+        'text_send_otp' => '',
+        'text_submit'   => '',
+    ];
 
-        return $this->get_otp_form_html([
-            'show_labels'  => filter_var($atts['show_labels'], FILTER_VALIDATE_BOOLEAN),
-            'redirect_to'  => !empty($atts['redirect_to']) ? esc_url($atts['redirect_to']) : '',
-            'theme'        => sanitize_html_class($atts['theme']),
-            'layout'       => sanitize_html_class($atts['layout']),
-            'button_texts' => $button_texts,
-        ]);
+    // Dynamically add default attributes for social provider texts and icons
+    foreach ($social_providers as $provider) {
+        $default_atts['text_' . $provider] = '';
+        $default_atts['icon_' . $provider] = '';
     }
+    
+    // Parse the incoming attributes against the defaults
+    $atts = shortcode_atts($default_atts, $atts, 'slr_otp_form');
+
+    // Prepare the button_texts array for the form renderer
+    $button_texts = [];
+    if (!empty($atts['text_send_otp'])) {
+        $button_texts['send_otp'] = sanitize_text_field($atts['text_send_otp']);
+    }
+    if (!empty($atts['text_submit'])) {
+        $button_texts['submit'] = sanitize_text_field($atts['text_submit']);
+    }
+
+    // Populate button texts for social providers
+    foreach ($social_providers as $provider) {
+        if (!empty($atts['text_' . $provider])) {
+            $button_texts[$provider] = sanitize_text_field($atts['text_' . $provider]);
+        }
+    }
+
+    // Prepare the icons array for the form renderer
+    $icons = [];
+    foreach ($social_providers as $provider) {
+        if (!empty($atts['icon_' . $provider])) {
+            $icons[$provider] = esc_attr($atts['icon_' . $provider]);
+        }
+    }
+
+    // Prepare the final arguments array and call the main form rendering engine
+    $args = [
+        'logo_url'      => !empty($atts['logo_url']) ? esc_url($atts['logo_url']) : '',
+        'show_labels'   => filter_var($atts['show_labels'], FILTER_VALIDATE_BOOLEAN),
+        'redirect_to'   => !empty($atts['redirect_to']) ? esc_url($atts['redirect_to']) : '',
+        'theme'         => sanitize_html_class($atts['theme']),
+        'layout'        => sanitize_html_class($atts['layout']),
+        'button_texts'  => $button_texts,
+        'icons'         => $icons,
+    ];
+    
+    return $this->get_otp_form_html($args);
+}
     
     /**
      * Sends an OTP email to the user with proper headers.
